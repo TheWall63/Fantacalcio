@@ -4,10 +4,14 @@ App web completa per gestire una lega di fantacalcio tra amici: aste/rose, forma
 calendario a girone all'italiana, classifica e punteggi calcolati a partire da dati
 **live gratuiti** di Serie A.
 
+> **Vuoi solo vedere il sito online, senza installare nulla sul tuo computer?**
+> Segui **[DEPLOY.md](./DEPLOY.md)**: in 15-20 minuti pubblichi tutto gratis
+> (Render + Neon + Vercel) e ottieni un link da aprire da telefono o PC.
+
 ## Architettura
 
 ```
-backend/    API REST — Node.js + TypeScript + Express + Prisma + SQLite
+backend/    API REST — Node.js + TypeScript + Express + Prisma + PostgreSQL
 frontend/   Web app — React + TypeScript + Vite (React Router)
 ```
 
@@ -106,9 +110,10 @@ dati a pagamento.
 Un cron interno (`node-cron`, ogni 3 minuti) risincronizza la giornata corrente in modo
 automatico durante le partite.
 
-## Setup
+## Setup (sviluppo locale)
 
-Requisiti: Node.js 20+.
+Requisiti: Node.js 20+ e un database PostgreSQL raggiungibile (va benissimo un
+progetto gratuito su [neon.tech](https://neon.tech), oppure Postgres locale/Docker).
 
 ```bash
 # Dalla radice del repo
@@ -117,12 +122,14 @@ npm install
 # Backend: configura l'ambiente
 cd backend
 cp .env.example .env
-# (opzionale) apri .env e incolla FOOTBALL_DATA_API_KEY se ne hai una
+# apri .env e incolla la tua stringa di connessione Postgres in DATABASE_URL
+# (opzionale) incolla FOOTBALL_DATA_API_KEY se ne hai una
 
-# Crea il database SQLite e le tabelle
-npx prisma migrate dev
+# Crea le tabelle sul database
+npx prisma db push
 
-# Popola i 472 giocatori Serie A 2025/26
+# Popola i 472 giocatori Serie A 2025/26 (si esegue anche da sola al primo
+# avvio del server se il database e' vuoto, ma puoi lanciarla anche a mano)
 npm run seed
 ```
 
@@ -155,8 +162,8 @@ backend/src/
     scoring.ts            calcolo fantavoti, punteggio formazioni, scontri diretti
     calendario.ts          generazione calendario round robin
     cronJob.ts             sync periodica della giornata corrente
-  seed/                    dataset giocatori + script di seed
-  prisma/schema.prisma      modello dati (SQLite)
+  seed/                    dataset giocatori + script di seed (auto-eseguito da server.ts se il DB e' vuoto)
+  prisma/schema.prisma      modello dati (PostgreSQL)
 ```
 
 ## Struttura del frontend
@@ -178,9 +185,11 @@ frontend/src/
 - Il calcolo del punteggio formazione non implementa ancora le sostituzioni automatiche
   dalla panchina in caso di titolare che non ha giocato, né il "modificatore di difesa"
   ufficiale del regolamento Fantacalcio.it.
-- In produzione, per servire frontend e backend dallo stesso dominio conviene mettere
-  un reverse proxy (nginx, Caddy) davanti a entrambi, oppure servire la build statica del
-  frontend (`npm run build:frontend`) direttamente da Express.
-- Il database è SQLite per semplicità (zero setup); per un uso con più utenti reali su
-  internet conviene migrare a PostgreSQL cambiando solo `datasource` in
-  `backend/prisma/schema.prisma` e la variabile `DATABASE_URL`.
+- Per pubblicare il sito online gratis (Render + Neon + Vercel) segui **[DEPLOY.md](./DEPLOY.md)**.
+  Il piano gratuito di Render mette in pausa il backend dopo 15 minuti di inattività: la
+  prima richiesta dopo una pausa lunga può impiegare 30-50 secondi.
+- Le migrazioni Prisma tracciate sono state sostituite da `prisma db push` per
+  semplicità di deploy: va benissimo per un progetto di questa dimensione, ma se il
+  progetto cresce e serve una vera cronologia di migrazioni reversibili, si può tornare a
+  `prisma migrate dev` in qualsiasi momento (basta avere una connessione Postgres
+  raggiungibile per generarle).

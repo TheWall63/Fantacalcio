@@ -2,7 +2,3 @@ node_modules/
 dist/
 .env
 *.log
-
-# SQLite database (generata localmente con prisma migrate + seed)
-backend/prisma/dev.db
-backend/prisma/dev.db-journal

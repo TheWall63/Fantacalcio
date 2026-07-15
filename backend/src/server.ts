@@ -11,6 +11,8 @@ import formazioniRoutes from "./routes/formazioni";
 import liveRoutes from "./routes/live";
 import { avviaCronLive } from "./services/cronJob";
 import { isLiveDataConfigured } from "./services/footballData";
+import { prisma } from "./lib/prisma";
+import { seedGiocatori } from "./seed/seed";
 
 const app = express();
 
@@ -36,8 +38,27 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const port = Number(process.env.PORT ?? 4000);
-app.listen(port, () => {
-  console.log(`Fantacalcio API in ascolto su http://localhost:${port}`);
-  console.log(`Dati live: ${isLiveDataConfigured() ? "API reale configurata" : "modalita' DEMO (nessuna API key)"}`);
-  avviaCronLive();
-});
+
+async function avvia() {
+  // Seed automatico al primo avvio su un database vuoto (es. subito dopo il
+  // deploy su un hosting nuovo): evita di dover aprire una shell remota per
+  // lanciare `npm run seed` a mano.
+  try {
+    const totaleGiocatori = await prisma.giocatore.count();
+    if (totaleGiocatori === 0) {
+      console.log("Nessun giocatore nel database: eseguo il seed iniziale...");
+      const { creati, saltati } = await seedGiocatori();
+      console.log(`Seed automatico completato: ${creati} giocatori importati, ${saltati} righe saltate.`);
+    }
+  } catch (err) {
+    console.error("Seed automatico fallito (il server parte comunque):", (err as Error).message);
+  }
+
+  app.listen(port, () => {
+    console.log(`Fantacalcio API in ascolto su http://localhost:${port}`);
+    console.log(`Dati live: ${isLiveDataConfigured() ? "API reale configurata" : "modalita' DEMO (nessuna API key)"}`);
+    avviaCronLive();
+  });
+}
+
+avvia();

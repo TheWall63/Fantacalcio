@@ -1,5 +1,12 @@
 const TOKEN_KEY = "fantacalcio_token";
 
+// In sviluppo locale le richieste a "/api" passano dal proxy di Vite verso
+// http://localhost:4000 (vedi vite.config.ts). In produzione (es. frontend
+// su Vercel, backend su Render) non c'e' un proxy: bisogna configurare
+// VITE_API_URL con l'URL completo del backend deployato (senza slash finale),
+// es. https://fantacalcio-backend.onrender.com
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -36,7 +43,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     body = JSON.stringify(options.body);
   }
 
-  const resp = await fetch(`/api${path}`, { method: options.method ?? "GET", headers, body });
+  const resp = await fetch(`${API_BASE}/api${path}`, { method: options.method ?? "GET", headers, body });
 
   if (resp.status === 204) return undefined as T;
 
