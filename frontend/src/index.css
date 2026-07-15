@@ -412,6 +412,10 @@ tbody tr:hover td {
   color: var(--text-dim);
 }
 
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
 .flex-between {
   display: flex;
   align-items: center;
@@ -487,6 +491,10 @@ tbody tr:hover td {
 }
 
 .player-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --lift: 0px;
+  --scale: 1;
   position: relative;
   width: 100%;
   max-width: 150px;
@@ -503,10 +511,12 @@ tbody tr:hover td {
   color: #fff;
   font-weight: 700;
   overflow: hidden;
+  transform-style: preserve-3d;
+  transform: perspective(700px) rotateX(var(--ry)) rotateY(var(--rx)) translateY(var(--lift)) scale(var(--scale));
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transition: transform 0.22s var(--ease-spring), box-shadow 0.22s, filter 0.22s;
+  transition: transform 0.12s ease-out, box-shadow 0.22s, filter 0.22s;
   filter: saturate(0.7) brightness(0.8);
-  animation: cardEnter 0.5s var(--ease-spring) both;
+  animation: cardEnter 0.5s var(--ease-spring) backwards;
   animation-delay: calc(var(--i, 0) * 45ms);
 }
 .player-card::before {
@@ -524,13 +534,30 @@ tbody tr:hover td {
 .player-card:hover:not(:disabled)::before {
   animation: shineSweep 0.9s ease;
 }
+.player-card::after {
+  /* riflesso che segue il cursore, per rinforzare la sensazione di 3D */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.4), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+.player-card:hover:not(:disabled)::after {
+  opacity: 1;
+}
 .player-card:hover:not(:disabled) {
-  transform: translateY(-6px) scale(1.035);
+  --lift: -6px;
+  --scale: 1.035;
   filter: saturate(0.95) brightness(0.96);
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 .player-card:active:not(:disabled) {
-  transform: translateY(-2px) scale(0.98);
+  --lift: -2px;
+  --scale: 0.98;
+  transition: transform 0.05s ease-out, box-shadow 0.22s, filter 0.22s;
 }
 .player-card:disabled {
   cursor: not-allowed;
@@ -956,6 +983,83 @@ tbody tr:hover td {
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+/* Coriandoli */
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  animation-name: confettiFall;
+  animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+@keyframes confettiFall {
+  0% {
+    transform: translate(0, -10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--drift), 105vh) rotate(var(--spin));
+    opacity: 0.9;
+  }
+}
+
+/* Notifiche toast */
+.toast-stack {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  z-index: 70;
+  max-width: min(340px, calc(100vw - 2.5rem));
+}
+.toast {
+  padding: 0.75rem 1.05rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-strong);
+  animation: toastLifecycle 3.4s ease forwards;
+}
+.toast-success {
+  background: rgba(15, 184, 114, 0.92);
+  color: #04170d;
+  border: 1px solid rgba(34, 224, 143, 0.5);
+}
+.toast-error {
+  background: rgba(199, 40, 63, 0.92);
+  color: #fff;
+  border: 1px solid rgba(245, 85, 107, 0.5);
+}
+@keyframes toastLifecycle {
+  0% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  8% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  88% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(8px);
+    opacity: 0;
   }
 }
 

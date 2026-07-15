@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from "../api/client";
 import type { CartaBonus, Formazione, RosaGiocatore } from "../api/types";
 import PlayerCard from "../components/PlayerCard";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useToast } from "../context/ToastContext";
 
 const MODULI = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
 const SCHEMA: Record<string, { D: number; C: number; A: number }> = {
@@ -19,13 +20,13 @@ const SCHEMA: Record<string, { D: number; C: number; A: number }> = {
 export default function FormazionePage() {
   useDocumentTitle("Schiera formazione");
   const { squadraId, giornataId } = useParams<{ squadraId: string; giornataId: string }>();
+  const { showToast } = useToast();
   const [rosa, setRosa] = useState<RosaGiocatore[]>([]);
   const [carte, setCarte] = useState<CartaBonus[]>([]);
   const [modulo, setModulo] = useState("3-4-3");
   const [titolari, setTitolari] = useState<Set<string>>(new Set());
   const [panchina, setPanchina] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [messaggio, setMessaggio] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -85,15 +86,14 @@ export default function FormazionePage() {
     if (!squadraId || !giornataId) return;
     setBusy(true);
     setError(null);
-    setMessaggio(null);
     try {
       await apiFetch("/formazioni", {
         method: "PUT",
         body: { squadraId, giornataId, modulo, titolari: Array.from(titolari), panchina: Array.from(panchina) },
       });
-      setMessaggio("Formazione salvata!");
+      showToast("Formazione salvata!");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Errore nel salvataggio della formazione");
+      showToast(err instanceof ApiError ? err.message : "Errore nel salvataggio della formazione", "error");
     } finally {
       setBusy(false);
     }
@@ -105,7 +105,6 @@ export default function FormazionePage() {
     <div>
       <h2>Schiera formazione</h2>
       {error && <div className="error-box">{error}</div>}
-      {messaggio && <div className="info-box">{messaggio}</div>}
 
       <div className="card flex-between">
         <div className="form-row" style={{ marginBottom: 0 }}>

@@ -5,18 +5,24 @@ import { useAuth } from "../context/AuthContext";
 import type { Giornata, Lega, RigaClassifica } from "../api/types";
 import { Skeleton, SkeletonTable } from "../components/Skeleton";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useCountUp } from "../hooks/useCountUp";
+import { useToast } from "../context/ToastContext";
+
+function PuntiClassifica({ valore }: { valore: number }) {
+  const animato = useCountUp(valore);
+  return <strong className="tabular">{Math.round(animato)}</strong>;
+}
 
 export default function LegaPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [lega, setLega] = useState<Lega | null>(null);
   useDocumentTitle(lega ? lega.nome : "Lega");
   const [classifica, setClassifica] = useState<RigaClassifica[]>([]);
   const [giornate, setGiornate] = useState<Giornata[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [messaggio, setMessaggio] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
 
   const ricarica = useCallback(async () => {
     if (!id) return;
@@ -46,13 +52,12 @@ export default function LegaPage() {
     if (!id) return;
     setBusy(true);
     setError(null);
-    setMessaggio(null);
     try {
       await apiFetch("/giornate/calendario", { method: "POST", body: { legaId: id } });
-      setMessaggio("Calendario generato con successo.");
+      showToast("Calendario generato con successo.");
       await ricarica();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Errore nella generazione del calendario");
+      showToast(err instanceof ApiError ? err.message : "Errore nella generazione del calendario", "error");
     } finally {
       setBusy(false);
     }
@@ -62,31 +67,12 @@ export default function LegaPage() {
     if (!giornataCorrente) return;
     setBusy(true);
     setError(null);
-    setMessaggio(null);
     try {
       const res = await apiFetch<{ demo: boolean; partiteAggiornate: number }>(`/giornate/${giornataCorrente.id}/sync`, { method: "POST" });
-      setMessaggio(`Sincronizzati ${res.partiteAggiornate} incontri${res.demo ? " (dati demo)" : ""}.`);
+      showToast(`Sincronizzati ${res.partiteAggiornate} incontri${res.demo ? " (dati demo)" : ""}.`);
       await ricarica();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Errore nella sincronizzazione");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function importaListone() {
-    if (!csvFile) return;
-    setBusy(true);
-    setError(null);
-    setMessaggio(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", csvFile);
-      const res = await apiFetch<{ creati: number; aggiornati: number }>("/giocatori/import", { method: "POST", formData });
-      setMessaggio(`Import completato: ${res.creati} nuovi, ${res.aggiornati} aggiornati.`);
-      setCsvFile(null);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Errore nell'import del listone");
+      showToast(err instanceof ApiError ? err.message : "Errore nella sincronizzazione", "error");
     } finally {
       setBusy(false);
     }
@@ -115,7 +101,6 @@ export default function LegaPage() {
         <span className="muted">Codice invito: <strong>{lega.codiceInvito}</strong></span>
       </div>
       {error && <div className="error-box">{error}</div>}
-      {messaggio && <div className="info-box">{messaggio}</div>}
 
       <div className="grid cols-2">
         <div className="card">
@@ -140,7 +125,7 @@ export default function LegaPage() {
                   </td>
                   <td>{r.squadra.nome}</td>
                   <td>
-                    <strong>{r.punti}</strong>
+                    <PuntiClassifica valore={r.punti} />
                   </td>
                   <td>{r.vinte}</td>
                   <td>{r.pareggiate}</td>
@@ -185,31 +170,22 @@ export default function LegaPage() {
       {sonoAdmin && (
         <div className="card">
           <h3>Amministrazione lega</h3>
-          <p className="muted">Solo l'admin della lega vede questi controlli.</p>
-
-          <div className="grid cols-2">
-            <div>
-              <p>
-                Calendario: <strong>{giornate.length > 0 ? `${giornate.length} giornate generate` : "non ancora generato"}</strong>
-              </p>
-              <button className="secondary" disabled={busy} onClick={generaCalendario}>
-                {giornate.length > 0 ? "Rigenera calendario" : "Genera calendario"}
-              </button>
-              {giornataCorrente && (
-                <button style={{ marginLeft: "0.5rem" }} disabled={busy} onClick={sincronizzaGiornata}>
-                  Sincronizza giornata {giornataCorrente.numero}
-                </button>
-              )}
-            </div>
-
-            <div>
-              <p>Importa listone/immagini (CSV: nome,squadra,ruolo,quotazione,immagine — l'ultima colonna e' opzionale)</p>
-              <input type="file" accept=".csv" onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)} />
-              <button style={{ marginLeft: "0.5rem" }} disabled={busy || !csvFile} onClick={importaListone}>
-                Importa
-              </button>
-            </div>
-          </div>
+          <p className="muted">
+            Solo l'admin della lega vede questi controlli. Il calendario si genera da solo appena la lega raggiunge 8
+            squadre iscritte; da qui puoi comunque generarlo prima se siete di meno, o rigenerarlo.
+          </p>
+          <p>
+            Calendario: <strong>{giornate.length > 0 ? `${giornate.length} giornate generate` : "non ancora generato"}</strong>
+            {" "}&middot; Squadre iscritte: <strong>{lega.squadre?.length ?? 0}</strong>
+          </p>
+          <button className="secondary" disabled={busy} onClick={generaCalendario}>
+            {giornate.length > 0 ? "Rigenera calendario" : "Genera calendario"}
+          </button>
+          {giornataCorrente && (
+            <button style={{ marginLeft: "0.5rem" }} disabled={busy} onClick={sincronizzaGiornata}>
+              Sincronizza giornata {giornataCorrente.numero}
+            </button>
+          )}
         </div>
       )}
     </div>

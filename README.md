@@ -22,8 +22,10 @@ Monorepo npm workspaces: un solo `npm install` alla radice installa entrambi i p
   utente ha una squadra per lega.
 - **Asta/mercato**: assegna giocatori alla tua rosa entro il budget della lega; un
   giocatore non può appartenere a due squadre della stessa lega.
-- **Calendario**: generato automaticamente a girone all'italiana (round robin) su tutte
-  le giornate della lega.
+- **Calendario**: generato automaticamente a girone all'italiana (round robin) non appena
+  la lega raggiunge **8 squadre iscritte** (scatta una volta sola per non azzerare punteggi
+  già calcolati se altri si iscrivono dopo). L'admin può comunque generarlo prima se sono
+  in meno, o rigenerarlo in qualsiasi momento dalla sezione "Amministrazione lega".
 - **Formazioni**: scegli modulo e titolari/panchina rispettando gli schemi classici
   (3-4-3, 4-3-3, ecc.), con validazione dei ruoli. I giocatori si schierano come card
   "Campioncino" in stile Ultimate Team (colore per ruolo, quotazione come rating, un
@@ -54,15 +56,14 @@ con i prezzi reali di mercato: è solo una base plausibile da cui partire, modif
 liberamente offerta per offerta durante l'asta in-app. Il "listone" ufficiale con i prezzi
 reali (il materiale proprietario che siti come Fantacalcio.it pubblicano gratuitamente
 ogni estate) **non è incluso** di proposito, perché non può essere redistribuito da terzi.
-Per importarlo quando esce e sovrascrivere le quotazioni approssimative:
-
-1. Scarica il listone ufficiale (es. da fantacalcio.it, gratuito, formato Excel/CSV)
-   quando esce ad agosto.
-2. Convertilo/adattalo al formato CSV `nome,squadra,ruolo,quotazione` (vedi
-   `backend/src/seed/seriea_players_2025_26.csv` come esempio di formato).
-3. Da una lega di cui sei admin, sezione "Amministrazione lega" → "Importa listone", carica
-   il file. L'import fa un upsert per nome giocatore: aggiorna ruolo/quotazione se il
-   giocatore esiste già, altrimenti lo crea.
+**Non c'è un pulsante nell'interfaccia per caricarlo**: di proposito, per evitare che un
+qualsiasi admin di lega carichi per sbaglio (o di proposito) dati che non dovrebbe
+ridistribuire. L'endpoint per l'import esiste comunque lato backend
+(`POST /api/giocatori/import`, autenticato, si aspetta un CSV
+`nome,squadra,ruolo,quotazione,immagine` — l'ultima colonna opzionale, vedi
+`backend/src/seed/seriea_players_2025_26.csv` come esempio di formato senza quella
+colonna) ed è pensato per essere usato direttamente da chi gestisce il deploy quando ha
+in mano il file reale, non esposto come funzione self-service per gli admin di lega.
 
 Analogamente i **voti ufficiali** dei giornalisti (Gazzetta, Fantacalcio.it) dopo ogni
 giornata sono un prodotto a pagamento e non vengono usati: il punteggio in questa app è
@@ -75,14 +76,17 @@ nome su sfondo colorato per ruolo. Per aggiungere le tue immagini in un secondo 
 senza toccare il codice, basta valorizzare il campo `immagineUrl` di ogni giocatore in uno
 di questi due modi:
 
-1. **In blocco via CSV**: aggiungi una quinta colonna `immagine` al CSV usato per
-   l'import del listone (`nome,squadra,ruolo,quotazione,immagine`) con l'URL di ogni
-   immagine. Può essere un URL esterno (`https://...`) oppure un path servito
+1. **In blocco via CSV**: aggiungi una quinta colonna `immagine` al CSV di
+   `POST /api/giocatori/import` (`nome,squadra,ruolo,quotazione,immagine`) con l'URL di
+   ogni immagine. Può essere un URL esterno (`https://...`) oppure un path servito
    staticamente dal frontend, ad es. metti i file in `frontend/public/players/` e scrivi
-   `/players/lautaro-martinez.jpg` nella colonna. Ricarica il CSV dalla sezione
-   "Amministrazione lega" → "Importa listone".
+   `/players/lautaro-martinez.jpg` nella colonna.
 2. **Giocatore per giocatore**: `PATCH /api/giocatori/:id/immagine` con body
    `{ "immagineUrl": "https://..." }` (o `null` per rimuoverla).
+
+Anche questo, come il listone, non ha un pulsante dedicato nell'interfaccia: è pensato
+per essere eseguito da chi gestisce il deploy (es. con `curl` o uno script) quando ha le
+immagini pronte, non come funzione self-service per gli admin di lega.
 
 Se un URL non carica, la card torna automaticamente all'avatar con le iniziali — nessun
 giocatore resta con un'immagine rotta.
@@ -171,9 +175,11 @@ backend/src/
 ```
 frontend/src/
   api/          client fetch + tipi condivisi con il backend
-  context/      AuthContext (sessione utente, JWT in localStorage)
+  context/      AuthContext (sessione), ToastContext (notifiche animate)
+  hooks/        useDocumentTitle, useCountUp
   pages/        Login, Register, Dashboard, Lega, Squadra, Giocatori (live), Formazione
-  components/   Layout (nav bar), ProtectedRoute
+  components/   Layout, ProtectedRoute, PlayerCard (campioncino con tilt 3D),
+                PackOpening (apertura pacchetto animata), Confetti, Skeleton
 ```
 
 ## Limiti noti e possibili estensioni future

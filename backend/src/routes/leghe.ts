@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 import { generateInviteCode } from "../lib/inviteCode";
+import { generaCalendarioLega } from "../services/calendario";
+import { MIN_SQUADRE_CALENDARIO_AUTO } from "../types/domain";
 
 const router = Router();
 router.use(requireAuth);
@@ -84,7 +86,22 @@ router.post("/join", async (req, res) => {
     },
   });
 
-  res.status(201).json({ lega, squadra });
+  // Appena la lega raggiunge il numero minimo di squadre, generiamo da soli
+  // il calendario a girone all'italiana: nessun admin deve ricordarsi di
+  // farlo a mano. Scatta una volta sola (al superamento esatto della soglia)
+  // per non rigenerare/azzerare punteggi gia' calcolati se altri si iscrivono dopo.
+  let calendarioGenerato = false;
+  const numeroSquadre = await prisma.squadra.count({ where: { legaId: lega.id } });
+  if (numeroSquadre === MIN_SQUADRE_CALENDARIO_AUTO) {
+    try {
+      await generaCalendarioLega(lega.id);
+      calendarioGenerato = true;
+    } catch (err) {
+      console.error("Generazione automatica calendario fallita:", (err as Error).message);
+    }
+  }
+
+  res.status(201).json({ lega, squadra, calendarioGenerato });
 });
 
 // Elenco leghe dell'utente autenticato

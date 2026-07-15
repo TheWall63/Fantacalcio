@@ -4,24 +4,28 @@ import { apiFetch, ApiError } from "../api/client";
 import type { CartaBonus, Giocatore, Giornata, RosaGiocatore } from "../api/types";
 import PlayerCard from "../components/PlayerCard";
 import PackOpening, { type FaseApertura } from "../components/PackOpening";
+import Confetti from "../components/Confetti";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useCountUp } from "../hooks/useCountUp";
+import { useToast } from "../context/ToastContext";
 
 const DURATA_MIN_SHAKE_MS = 1100;
 
 export default function SquadraPage() {
   useDocumentTitle("La mia squadra");
   const { id } = useParams<{ id: string }>();
+  const { showToast } = useToast();
   const [rosa, setRosa] = useState<RosaGiocatore[]>([]);
   const [svincolati, setSvincolati] = useState<Giocatore[]>([]);
   const [giornate, setGiornate] = useState<Giornata[]>([]);
   const [carte, setCarte] = useState<CartaBonus[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [messaggio, setMessaggio] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [prezzi, setPrezzi] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [fasePacchetto, setFasePacchetto] = useState<FaseApertura>("idle");
   const [cartaRivelata, setCartaRivelata] = useState<Giocatore | null>(null);
+  const [festaId, setFestaId] = useState(0);
 
   const ricarica = useCallback(async () => {
     if (!id) return;
@@ -45,7 +49,8 @@ export default function SquadraPage() {
     ricarica();
   }, [ricarica]);
 
-  const budgetSpeso = rosa.reduce((acc, r) => acc + r.prezzoPagato, 0);
+  const budgetSpesoReale = rosa.reduce((acc, r) => acc + r.prezzoPagato, 0);
+  const budgetSpeso = useCountUp(budgetSpesoReale);
   const svincolatiFiltrati = svincolati.filter((g) => g.nome.toLowerCase().includes(q.toLowerCase()));
   const giornataCorrente = giornate.find((g) => g.stato !== "CONCLUSA") ?? giornate[0];
 
@@ -63,7 +68,6 @@ export default function SquadraPage() {
   async function apriPacchetto() {
     if (!id || !giornataCorrente) return;
     setError(null);
-    setMessaggio(null);
     setCartaRivelata(null);
     setFasePacchetto("shaking");
     const inizio = Date.now();
@@ -73,26 +77,27 @@ export default function SquadraPage() {
       if (trascorso < DURATA_MIN_SHAKE_MS) await attendi(DURATA_MIN_SHAKE_MS - trascorso);
       setCartaRivelata(carta.giocatore);
       setFasePacchetto("rivelata");
+      setFestaId((f) => f + 1);
       await ricarica();
     } catch (err) {
       setFasePacchetto("idle");
-      setError(err instanceof ApiError ? err.message : "Errore nell'apertura del pacchetto");
+      showToast(err instanceof ApiError ? err.message : "Errore nell'apertura del pacchetto", "error");
     }
   }
 
   async function acquista(giocatoreId: string) {
     if (!id) return;
-    const suggerito = svincolati.find((g) => g.id === giocatoreId)?.quotazione ?? 1;
+    const giocatore = svincolati.find((g) => g.id === giocatoreId);
+    const suggerito = giocatore?.quotazione ?? 1;
     const prezzo = prezzi[giocatoreId] ?? suggerito;
     setBusy(true);
     setError(null);
-    setMessaggio(null);
     try {
       await apiFetch(`/squadre/${id}/rosa`, { method: "POST", body: { giocatoreId, prezzo } });
-      setMessaggio("Giocatore acquistato.");
+      showToast(`${giocatore?.nome ?? "Giocatore"} acquistato per ${prezzo} crediti.`);
       await ricarica();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Errore nell'acquisto");
+      showToast(err instanceof ApiError ? err.message : "Errore nell'acquisto", "error");
     } finally {
       setBusy(false);
     }
@@ -102,13 +107,12 @@ export default function SquadraPage() {
     if (!id) return;
     setBusy(true);
     setError(null);
-    setMessaggio(null);
     try {
       await apiFetch(`/squadre/${id}/rosa/${rosaId}`, { method: "DELETE" });
-      setMessaggio("Giocatore svincolato.");
+      showToast("Giocatore svincolato.");
       await ricarica();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Errore nello svincolo");
+      showToast(err instanceof ApiError ? err.message : "Errore nello svincolo", "error");
     } finally {
       setBusy(false);
     }
@@ -116,13 +120,15 @@ export default function SquadraPage() {
 
   return (
     <div>
+      {fasePacchetto === "rivelata" && <Confetti burstId={festaId} />}
       <h2>La mia squadra</h2>
       {error && <div className="error-box">{error}</div>}
-      {messaggio && <div className="info-box">{messaggio}</div>}
 
       <div className="card flex-between">
         <div>
-          <p className="muted">Budget speso: {budgetSpeso}</p>
+          <p className="muted">
+            Budget speso: <strong className="tabular">{Math.round(budgetSpeso)}</strong>
+          </p>
           <p className="muted">Giocatori in rosa: {rosa.length}</p>
         </div>
         {giornataCorrente && (

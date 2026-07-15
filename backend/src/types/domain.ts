@@ -23,6 +23,10 @@ export const SCHEMA_MODULO: Record<Modulo, { D: number; C: number; A: number }> 
   "5-4-1": { D: 5, C: 4, A: 1 },
 };
 
+// Numero minimo di squadre iscritte oltre il quale il calendario della lega
+// viene generato automaticamente (vedi routes/leghe.ts, join).
+export const MIN_SQUADRE_CALENDARIO_AUTO = 8;
+
 export const STATO_PARTITA = ["SCHEDULED", "LIVE", "FINISHED"] as const;
 export const STATO_GIORNATA = ["PROGRAMMATA", "IN_CORSO", "CONCLUSA"] as const;
 export const SLOT_FORMAZIONE = ["TITOLARE", "PANCHINA"] as const;
