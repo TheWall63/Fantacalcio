@@ -115,4 +115,53 @@ router.get("/:id/svincolati", async (req, res) => {
   res.json(svincolati);
 });
 
+const pacchettoSchema = z.object({ giornataId: z.string() });
+
+// Apre il pacchetto settimanale "campioncino": estrae un giocatore casuale
+// dalla rosa della squadra. Un solo pacchetto per squadra per giornata.
+router.post("/:id/pacchetto", async (req, res) => {
+  const userId = req.user!.userId;
+  const check = await assertProprietario(req.params.id, userId);
+  if ("error" in check) return res.status(check.status).json({ error: check.error });
+  const squadra = check.squadra;
+
+  const parsed = pacchettoSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+  const { giornataId } = parsed.data;
+
+  const giornata = await prisma.giornata.findUnique({ where: { id: giornataId } });
+  if (!giornata) return res.status(404).json({ error: "Giornata non trovata" });
+
+  const giaAperto = await prisma.cartaBonus.findUnique({
+    where: { squadraId_giornataAperturaId: { squadraId: squadra.id, giornataAperturaId: giornataId } },
+  });
+  if (giaAperto) {
+    return res.status(409).json({ error: "Hai gia' aperto il pacchetto di questa giornata" });
+  }
+
+  const rosa = await prisma.rosaGiocatore.findMany({ where: { squadraId: squadra.id }, include: { giocatore: true } });
+  if (rosa.length === 0) {
+    return res.status(400).json({ error: "La tua rosa e' vuota: acquista dei giocatori prima di aprire un pacchetto" });
+  }
+
+  const estratto = rosa[Math.floor(Math.random() * rosa.length)];
+
+  const carta = await prisma.cartaBonus.create({
+    data: { squadraId: squadra.id, giocatoreId: estratto.giocatoreId, giornataAperturaId: giornataId },
+    include: { giocatore: true },
+  });
+
+  res.status(201).json(carta);
+});
+
+// Elenco delle carte bonus della squadra (in attesa e gia' utilizzate)
+router.get("/:id/carte", async (req, res) => {
+  const carte = await prisma.cartaBonus.findMany({
+    where: { squadraId: req.params.id },
+    include: { giocatore: true, giornataApertura: true, giornataUtilizzo: true },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(carte);
+});
+
 export default router;

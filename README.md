@@ -21,11 +21,19 @@ Monorepo npm workspaces: un solo `npm install` alla radice installa entrambi i p
 - **Calendario**: generato automaticamente a girone all'italiana (round robin) su tutte
   le giornate della lega.
 - **Formazioni**: scegli modulo e titolari/panchina rispettando gli schemi classici
-  (3-4-3, 4-3-3, ecc.), con validazione dei ruoli.
+  (3-4-3, 4-3-3, ecc.), con validazione dei ruoli. I giocatori si schierano come card
+  "Campioncino" in stile Ultimate Team (colore per ruolo, quotazione come rating, un
+  click per titolare/panchina).
+- **Pacchetto settimanale**: una volta a giornata ogni squadra può aprire un pacchetto
+  che estrae a caso un giocatore della propria rosa. Se quel giocatore viene schierato
+  titolare in una giornata riceve **+1** al voto finale; se non gioca, la carta bonus
+  resta valida e si attiva automaticamente alla prima giornata utile in cui viene
+  schierato (vedi `backend/src/routes/squadre.ts`, endpoint `/pacchetto` e `/carte`, e
+  la logica di attivazione idempotente in `services/scoring.ts`).
 - **Punteggi e classifica**: la sincronizzazione di una giornata calcola i fantavoti dei
-  giocatori dagli eventi reali della partita, somma i punti della formazione schierata e
-  aggiorna il risultato dello scontro diretto in classifica (3/1/0 punti come nel calcio
-  vero).
+  giocatori dagli eventi reali della partita, somma i punti della formazione schierata
+  (bonus pacchetto incluso) e aggiorna il risultato dello scontro diretto in classifica
+  (3/1/0 punti come nel calcio vero).
 
 ## Dati dei giocatori: cosa è incluso e cosa no
 

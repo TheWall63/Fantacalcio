@@ -92,3 +92,16 @@ export interface Formazione {
   punteggio: number | null;
   giocatori: { giocatoreId: string; slot: "TITOLARE" | "PANCHINA"; giocatore: Giocatore }[];
 }
+
+export interface CartaBonus {
+  id: string;
+  squadraId: string;
+  giocatoreId: string;
+  giornataAperturaId: string;
+  stato: "PENDING" | "USATA";
+  giornataUtilizzoId: string | null;
+  createdAt: string;
+  giocatore: Giocatore;
+  giornataApertura?: Giornata;
+  giornataUtilizzo?: Giornata | null;
+}

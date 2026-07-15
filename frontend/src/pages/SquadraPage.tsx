@@ -1,30 +1,36 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
-import type { Giocatore, Giornata, RosaGiocatore } from "../api/types";
+import type { CartaBonus, Giocatore, Giornata, RosaGiocatore } from "../api/types";
+import PlayerCard from "../components/PlayerCard";
 
 export default function SquadraPage() {
   const { id } = useParams<{ id: string }>();
   const [rosa, setRosa] = useState<RosaGiocatore[]>([]);
   const [svincolati, setSvincolati] = useState<Giocatore[]>([]);
   const [giornate, setGiornate] = useState<Giornata[]>([]);
+  const [carte, setCarte] = useState<CartaBonus[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [messaggio, setMessaggio] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [prezzi, setPrezzi] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
+  const [aprendoPacchetto, setAprendoPacchetto] = useState(false);
+  const [ultimaCartaAperta, setUltimaCartaAperta] = useState<CartaBonus | null>(null);
 
   const ricarica = useCallback(async () => {
     if (!id) return;
     try {
-      const [r, s, g] = await Promise.all([
+      const [r, s, g, c] = await Promise.all([
         apiFetch<RosaGiocatore[]>(`/squadre/${id}/rosa`),
         apiFetch<Giocatore[]>(`/squadre/${id}/svincolati`),
         apiFetch<Giornata[]>(`/giornate?stagione=2025/26`),
+        apiFetch<CartaBonus[]>(`/squadre/${id}/carte`),
       ]);
       setRosa(r);
       setSvincolati(s);
       setGiornate(g);
+      setCarte(c);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Errore nel caricamento della squadra");
     }
@@ -37,6 +43,29 @@ export default function SquadraPage() {
   const budgetSpeso = rosa.reduce((acc, r) => acc + r.prezzoPagato, 0);
   const svincolatiFiltrati = svincolati.filter((g) => g.nome.toLowerCase().includes(q.toLowerCase()));
   const giornataCorrente = giornate.find((g) => g.stato !== "CONCLUSA") ?? giornate[0];
+
+  const pacchettoGiaAperto = useMemo(
+    () => (giornataCorrente ? carte.some((c) => c.giornataAperturaId === giornataCorrente.id) : false),
+    [carte, giornataCorrente]
+  );
+  const carteInAttesa = carte.filter((c) => c.stato === "PENDING");
+  const carteUsate = carte.filter((c) => c.stato === "USATA");
+
+  async function apriPacchetto() {
+    if (!id || !giornataCorrente) return;
+    setAprendoPacchetto(true);
+    setError(null);
+    setMessaggio(null);
+    try {
+      const carta = await apiFetch<CartaBonus>(`/squadre/${id}/pacchetto`, { method: "POST", body: { giornataId: giornataCorrente.id } });
+      setUltimaCartaAperta(carta);
+      await ricarica();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Errore nell'apertura del pacchetto");
+    } finally {
+      setAprendoPacchetto(false);
+    }
+  }
 
   async function acquista(giocatoreId: string) {
     if (!id) return;
@@ -87,6 +116,59 @@ export default function SquadraPage() {
           <Link to={`/formazione/${id}/${giornataCorrente.id}`}>
             <button>Schiera formazione (giornata {giornataCorrente.numero})</button>
           </Link>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="flex-between">
+          <div>
+            <h3 style={{ marginBottom: "0.25rem" }}>Pacchetto settimanale</h3>
+            <p className="muted" style={{ margin: 0 }}>
+              Una volta a giornata puoi aprire un pacchetto: estrae a caso un "campioncino" dalla tua rosa. Se lo
+              schieri titolare in quella giornata riceve <strong>+1</strong> al voto finale; se non gioca, la carta
+              resta valida e si attiva alla prima giornata in cui lo schieri.
+            </p>
+          </div>
+          {giornataCorrente && (
+            <button disabled={pacchettoGiaAperto || aprendoPacchetto} onClick={apriPacchetto}>
+              {pacchettoGiaAperto ? "Pacchetto gia' aperto" : aprendoPacchetto ? "Apertura..." : `Apri pacchetto (giornata ${giornataCorrente.numero})`}
+            </button>
+          )}
+        </div>
+
+        {ultimaCartaAperta && (
+          <div className="pacchetto-reveal">
+            <p className="muted" style={{ margin: 0 }}>
+              Hai trovato:
+            </p>
+            <PlayerCard giocatore={ultimaCartaAperta.giocatore} hasBonus />
+          </div>
+        )}
+
+        {carteInAttesa.length > 0 && (
+          <>
+            <h4 className="muted" style={{ marginBottom: "0.5rem" }}>
+              Carte bonus in attesa
+            </h4>
+            <div className="player-card-grid">
+              {carteInAttesa.map((c) => (
+                <PlayerCard key={c.id} giocatore={c.giocatore} hasBonus size="sm" />
+              ))}
+            </div>
+          </>
+        )}
+
+        {carteUsate.length > 0 && (
+          <details style={{ marginTop: "1rem" }}>
+            <summary className="muted" style={{ cursor: "pointer" }}>
+              Carte gia' utilizzate ({carteUsate.length})
+            </summary>
+            <div className="player-card-grid" style={{ marginTop: "0.75rem" }}>
+              {carteUsate.map((c) => (
+                <PlayerCard key={c.id} giocatore={c.giocatore} size="sm" />
+              ))}
+            </div>
+          </details>
         )}
       </div>
 
