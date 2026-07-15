@@ -68,14 +68,17 @@ quale **branch** di GitHub usare, seleziona `claude/fantasy-football-live-app-gk
    - Cerca l'opzione **"Include source files outside of the Root Directory in
      the Build Step"** (di solito sotto "Root Directory") e **attivala**:
      serve perché il progetto è organizzato in più cartelle
-4. Prima di cliccare Deploy, apri la sezione **"Environment Variables"** e
-   aggiungi:
-   - Nome: `VITE_API_URL`
-   - Valore: l'indirizzo del backend Render copiato al punto 2.7 (senza `/`
-     finale), es. `https://fantacalcio-backend-xxxx.onrender.com`
-5. Clicca **"Deploy"**. Dopo un minuto avrai il tuo link, tipo
+4. Clicca **"Deploy"**. Dopo un minuto avrai il tuo link, tipo
    `https://tuo-progetto.vercel.app`. **Questo è il sito da condividere con
    gli amici.**
+
+   Non serve impostare nessuna variabile d'ambiente qui: il file
+   `frontend/vercel.json` nel repository dice già a Vercel di inoltrare da
+   solo tutte le richieste `/api/...` verso il backend su Render — un passo
+   in meno e nessun rischio di sbagliare a impostarla dalla dashboard.
+   L'unica accortezza: se un giorno il tuo servizio Render cambia indirizzo
+   (es. lo ricrei da zero), devi aggiornare l'URL dentro quel file e fare un
+   nuovo push su GitHub.
 
 ## 4. Ultimo passaggio: ricollegare backend e frontend
 
