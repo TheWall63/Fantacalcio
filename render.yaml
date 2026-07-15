@@ -11,7 +11,7 @@ services:
     plan: free
     region: frankfurt
     buildCommand: >-
-      npm install &&
+      npm install --include=dev &&
       npx prisma generate --schema=backend/prisma/schema.prisma &&
       npx prisma db push --schema=backend/prisma/schema.prisma --accept-data-loss &&
       npm run build --workspace backend
@@ -26,3 +26,5 @@ services:
         sync: false
       - key: FOOTBALL_DATA_API_KEY
         sync: false
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
