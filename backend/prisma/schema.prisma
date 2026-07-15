@@ -1,13 +1,13 @@
-// Fantacalcio - schema dati
-// SQLite non supporta enum nativi in Prisma: i campi "tipo/stato/ruolo"
-// sono stringhe validate a livello applicativo (vedi src/types).
+// Fantacalcio - schema dati (PostgreSQL, es. Neon in produzione)
+// I campi "tipo/stato/ruolo" restano stringhe validate a livello applicativo
+// (vedi src/types) per semplicita' e portabilita', non enum nativi Prisma.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

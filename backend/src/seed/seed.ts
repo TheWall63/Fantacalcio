@@ -9,7 +9,12 @@ import { RUOLI } from "../types/domain";
 // quotazioni APPROSSIMATIVE generate come base di partenza per l'asta (non
 // sono il listone ufficiale, che resta importabile via /api/giocatori/import
 // per non redistribuire dati proprietari di terzi). Vedi README per i dettagli.
-async function main() {
+//
+// Esportata come funzione (anziche' solo script CLI) cosi' server.ts puo'
+// eseguirla automaticamente al primo avvio se il DB e' vuoto: utile su
+// hosting come Render dove non c'e' un modo comodo di lanciare `npm run seed`
+// a mano dopo il deploy.
+export async function seedGiocatori(): Promise<{ creati: number; saltati: number }> {
   const csvPath = join(__dirname, "seriea_players_2025_26.csv");
   const righe: Record<string, string>[] = parse(readFileSync(csvPath, "utf-8"), {
     columns: true,
@@ -50,14 +55,21 @@ async function main() {
     creati++;
   }
 
-  console.log(`Seed completato: ${creati} giocatori importati, ${saltati} righe saltate.`);
+  return { creati, saltati };
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Entry point CLI: `npm run seed`. Non parte quando il file viene importato
+// da server.ts per l'auto-seed.
+if (require.main === module) {
+  seedGiocatori()
+    .then(({ creati, saltati }) => {
+      console.log(`Seed completato: ${creati} giocatori importati, ${saltati} righe saltate.`);
+    })
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

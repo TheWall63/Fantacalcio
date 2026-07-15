@@ -1,0 +1,28 @@
+# Render Blueprint: crea il servizio backend con "New +" -> "Blueprint" su
+# render.com, collegando questo repository. Render legge questo file e
+# configura build/start command e le variabili d'ambiente automaticamente
+# (quelle con "sync: false" ti verranno chieste nel form, vedi DEPLOY.md).
+# Nota: scegli il branch giusto nella schermata di creazione del Blueprint
+# (non e' fissato qui, cosi' funziona sia da un branch di lavoro che da main).
+services:
+  - type: web
+    name: fantacalcio-backend
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: >-
+      npm install &&
+      npx prisma generate --schema=backend/prisma/schema.prisma &&
+      npx prisma db push --schema=backend/prisma/schema.prisma --accept-data-loss &&
+      npm run build --workspace backend
+    startCommand: npm run start --workspace backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
+      - key: FOOTBALL_DATA_API_KEY
+        sync: false
