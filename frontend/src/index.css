@@ -399,6 +399,18 @@ tr:hover td {
   flex-shrink: 0;
 }
 
+.player-card-foto {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+  margin: 0.15rem 0;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
 .player-card-bottom {
   width: 100%;
   text-align: center;
@@ -461,7 +473,8 @@ tr:hover td {
 .player-card-sm {
   aspect-ratio: 3 / 3.6;
 }
-.player-card-sm .player-card-avatar {
+.player-card-sm .player-card-avatar,
+.player-card-sm .player-card-foto {
   width: 36px;
   height: 36px;
 }

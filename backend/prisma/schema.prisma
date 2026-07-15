@@ -62,6 +62,7 @@ model Giocatore {
   squadraSerieA  String
   ruolo          String // P | D | C | A
   quotazione     Int? // importata da listone CSV, opzionale
+  immagineUrl    String? // URL o path statico dell'immagine del "campioncino", opzionale
   externalTeamId Int? // id squadra su football-data.org, per matching live
   attivo         Boolean @default(true)
 

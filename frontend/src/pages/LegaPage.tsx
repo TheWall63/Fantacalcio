@@ -184,7 +184,7 @@ export default function LegaPage() {
             </div>
 
             <div>
-              <p>Importa listone ufficiale quotazioni (CSV: nome,squadra,ruolo,quotazione)</p>
+              <p>Importa listone/immagini (CSV: nome,squadra,ruolo,quotazione,immagine — l'ultima colonna e' opzionale)</p>
               <input type="file" accept=".csv" onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)} />
               <button style={{ marginLeft: "0.5rem" }} disabled={busy || !csvFile} onClick={importaListone}>
                 Importa

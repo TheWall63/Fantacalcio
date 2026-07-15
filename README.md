@@ -64,6 +64,25 @@ Analogamente i **voti ufficiali** dei giornalisti (Gazzetta, Fantacalcio.it) dop
 giornata sono un prodotto a pagamento e non vengono usati: il punteggio in questa app è
 calcolato "ad eventi" (vedi sotto).
 
+### Immagini dei "campioncini"
+
+Le card giocatore (vedi sotto) partono senza foto: mostrano un avatar con le iniziali del
+nome su sfondo colorato per ruolo. Per aggiungere le tue immagini in un secondo momento,
+senza toccare il codice, basta valorizzare il campo `immagineUrl` di ogni giocatore in uno
+di questi due modi:
+
+1. **In blocco via CSV**: aggiungi una quinta colonna `immagine` al CSV usato per
+   l'import del listone (`nome,squadra,ruolo,quotazione,immagine`) con l'URL di ogni
+   immagine. Può essere un URL esterno (`https://...`) oppure un path servito
+   staticamente dal frontend, ad es. metti i file in `frontend/public/players/` e scrivi
+   `/players/lautaro-martinez.jpg` nella colonna. Ricarica il CSV dalla sezione
+   "Amministrazione lega" → "Importa listone".
+2. **Giocatore per giocatore**: `PATCH /api/giocatori/:id/immagine` con body
+   `{ "immagineUrl": "https://..." }` (o `null` per rimuoverla).
+
+Se un URL non carica, la card torna automaticamente all'avatar con le iniziali — nessun
+giocatore resta con un'immagine rotta.
+
 ## Dati live: come funzionano
 
 Il backend usa l'API gratuita **[football-data.org](https://www.football-data.org/)**

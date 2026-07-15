@@ -35,6 +35,7 @@ export interface Giocatore {
   squadraSerieA: string;
   ruolo: Ruolo;
   quotazione: number | null;
+  immagineUrl: string | null;
   attivo: boolean;
 }
 

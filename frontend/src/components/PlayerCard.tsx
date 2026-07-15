@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Giocatore } from "../api/types";
 
 const RUOLO_LABEL: Record<string, string> = { P: "Portiere", D: "Difensore", C: "Centrocampista", A: "Attaccante" };
@@ -12,12 +13,16 @@ interface PlayerCardProps {
 }
 
 export default function PlayerCard({ giocatore, slot, hasBonus, onClick, disabled, size = "md" }: PlayerCardProps) {
+  const [immagineNonCaricata, setImmagineNonCaricata] = useState(false);
+
   const iniziali = giocatore.nome
     .split(" ")
     .map((p) => p[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const mostraImmagine = !!giocatore.immagineUrl && !immagineNonCaricata;
 
   const classi = [
     "player-card",
@@ -38,7 +43,17 @@ export default function PlayerCard({ giocatore, slot, hasBonus, onClick, disable
         <span className="player-card-rating">{giocatore.quotazione ?? "-"}</span>
         <span className="player-card-ruolo">{giocatore.ruolo}</span>
       </div>
-      <div className="player-card-avatar">{iniziali}</div>
+      {mostraImmagine ? (
+        // Fallback automatico alle iniziali se l'URL non carica (immagine rimossa/rotta)
+        <img
+          className="player-card-foto"
+          src={giocatore.immagineUrl!}
+          alt=""
+          onError={() => setImmagineNonCaricata(true)}
+        />
+      ) : (
+        <div className="player-card-avatar">{iniziali}</div>
+      )}
       <div className="player-card-bottom">
         <div className="player-card-nome">{giocatore.nome}</div>
         <div className="player-card-squadra">{giocatore.squadraSerieA}</div>
