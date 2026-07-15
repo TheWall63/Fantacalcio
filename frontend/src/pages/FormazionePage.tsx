@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
-import type { Formazione, RosaGiocatore } from "../api/types";
+import type { CartaBonus, Formazione, RosaGiocatore } from "../api/types";
+import PlayerCard from "../components/PlayerCard";
 
 const MODULI = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
 const SCHEMA: Record<string, { D: number; C: number; A: number }> = {
@@ -17,6 +18,7 @@ const SCHEMA: Record<string, { D: number; C: number; A: number }> = {
 export default function FormazionePage() {
   const { squadraId, giornataId } = useParams<{ squadraId: string; giornataId: string }>();
   const [rosa, setRosa] = useState<RosaGiocatore[]>([]);
+  const [carte, setCarte] = useState<CartaBonus[]>([]);
   const [modulo, setModulo] = useState("3-4-3");
   const [titolari, setTitolari] = useState<Set<string>>(new Set());
   const [panchina, setPanchina] = useState<Set<string>>(new Set());
@@ -27,6 +29,7 @@ export default function FormazionePage() {
   useEffect(() => {
     if (!squadraId) return;
     apiFetch<RosaGiocatore[]>(`/squadre/${squadraId}/rosa`).then(setRosa);
+    apiFetch<CartaBonus[]>(`/squadre/${squadraId}/carte`).then(setCarte).catch(() => {});
     if (giornataId) {
       apiFetch<Formazione>(`/formazioni/${squadraId}/${giornataId}`)
         .then((f) => {
@@ -38,6 +41,8 @@ export default function FormazionePage() {
     }
   }, [squadraId, giornataId]);
 
+  const bonusAttivi = useMemo(() => new Set(carte.filter((c) => c.stato === "PENDING").map((c) => c.giocatoreId)), [carte]);
+
   const schema = SCHEMA[modulo];
   const conteggio = useMemo(() => {
     const c = { P: 0, D: 0, C: 0, A: 0 };
@@ -48,30 +53,30 @@ export default function FormazionePage() {
     return c;
   }, [titolari, rosa]);
 
-  function toggleTitolare(giocatoreId: string) {
-    const next = new Set(titolari);
-    if (next.has(giocatoreId)) {
-      next.delete(giocatoreId);
-    } else {
-      next.add(giocatoreId);
-      const nextPanchina = new Set(panchina);
-      nextPanchina.delete(giocatoreId);
-      setPanchina(nextPanchina);
-    }
-    setTitolari(next);
-  }
+  function ciclaStato(giocatoreId: string) {
+    const inTitolari = titolari.has(giocatoreId);
+    const inPanchina = panchina.has(giocatoreId);
 
-  function togglePanchina(giocatoreId: string) {
-    const next = new Set(panchina);
-    if (next.has(giocatoreId)) {
-      next.delete(giocatoreId);
-    } else {
-      next.add(giocatoreId);
+    if (inTitolari) {
       const nextTitolari = new Set(titolari);
       nextTitolari.delete(giocatoreId);
       setTitolari(nextTitolari);
+      if (panchina.size < 7) {
+        setPanchina(new Set(panchina).add(giocatoreId));
+      }
+      return;
     }
-    setPanchina(next);
+    if (inPanchina) {
+      const nextPanchina = new Set(panchina);
+      nextPanchina.delete(giocatoreId);
+      setPanchina(nextPanchina);
+      return;
+    }
+    if (titolari.size < 11) {
+      setTitolari(new Set(titolari).add(giocatoreId));
+    } else if (panchina.size < 7) {
+      setPanchina(new Set(panchina).add(giocatoreId));
+    }
   }
 
   async function salva() {
@@ -122,41 +127,31 @@ export default function FormazionePage() {
         </div>
       </div>
 
+      {bonusAttivi.size > 0 && (
+        <div className="info-box">
+          Hai {bonusAttivi.size} carta/e bonus in attesa (badge dorato "+1"): se schieri quel giocatore da titolare
+          questa giornata, riceve +1 al voto finale.
+        </div>
+      )}
+
       <div className="card">
         <h3>Rosa disponibile</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Ruolo</th>
-              <th>Squadra</th>
-              <th>Titolare</th>
-              <th>Panchina</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rosa.map((r) => (
-              <tr key={r.id}>
-                <td>{r.giocatore.nome}</td>
-                <td>
-                  <span className={`badge ruolo-${r.giocatore.ruolo}`}>{r.giocatore.ruolo}</span>
-                </td>
-                <td>{r.giocatore.squadraSerieA}</td>
-                <td>
-                  <input type="checkbox" checked={titolari.has(r.giocatoreId)} onChange={() => toggleTitolare(r.giocatoreId)} />
-                </td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={panchina.has(r.giocatoreId)}
-                    disabled={panchina.size >= 7 && !panchina.has(r.giocatoreId)}
-                    onChange={() => togglePanchina(r.giocatoreId)}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <p className="muted" style={{ marginTop: "-0.5rem" }}>
+          Clicca un campioncino per schierarlo titolare, clicca di nuovo per mandarlo in panchina, un terzo click lo
+          rimette libero.
+        </p>
+        <div className="player-card-grid">
+          {rosa.map((r, i) => (
+            <PlayerCard
+              key={r.id}
+              index={i}
+              giocatore={r.giocatore}
+              slot={titolari.has(r.giocatoreId) ? "TITOLARE" : panchina.has(r.giocatoreId) ? "PANCHINA" : null}
+              hasBonus={bonusAttivi.has(r.giocatoreId)}
+              onClick={() => ciclaStato(r.giocatoreId)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/client";
 import type { Giocatore, Partita } from "../api/types";
+import { SkeletonTable } from "../components/Skeleton";
 
 interface LiveResponse {
   demo: boolean;
@@ -113,7 +114,7 @@ export default function GiocatoriPage() {
 
       <div className="card">
         {loading ? (
-          <p className="muted">Caricamento...</p>
+          <SkeletonTable rows={8} />
         ) : (
           <table>
             <thead>

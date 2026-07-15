@@ -21,11 +21,19 @@ Monorepo npm workspaces: un solo `npm install` alla radice installa entrambi i p
 - **Calendario**: generato automaticamente a girone all'italiana (round robin) su tutte
   le giornate della lega.
 - **Formazioni**: scegli modulo e titolari/panchina rispettando gli schemi classici
-  (3-4-3, 4-3-3, ecc.), con validazione dei ruoli.
+  (3-4-3, 4-3-3, ecc.), con validazione dei ruoli. I giocatori si schierano come card
+  "Campioncino" in stile Ultimate Team (colore per ruolo, quotazione come rating, un
+  click per titolare/panchina).
+- **Pacchetto settimanale**: una volta a giornata ogni squadra può aprire un pacchetto
+  che estrae a caso un giocatore della propria rosa. Se quel giocatore viene schierato
+  titolare in una giornata riceve **+1** al voto finale; se non gioca, la carta bonus
+  resta valida e si attiva automaticamente alla prima giornata utile in cui viene
+  schierato (vedi `backend/src/routes/squadre.ts`, endpoint `/pacchetto` e `/carte`, e
+  la logica di attivazione idempotente in `services/scoring.ts`).
 - **Punteggi e classifica**: la sincronizzazione di una giornata calcola i fantavoti dei
-  giocatori dagli eventi reali della partita, somma i punti della formazione schierata e
-  aggiorna il risultato dello scontro diretto in classifica (3/1/0 punti come nel calcio
-  vero).
+  giocatori dagli eventi reali della partita, somma i punti della formazione schierata
+  (bonus pacchetto incluso) e aggiorna il risultato dello scontro diretto in classifica
+  (3/1/0 punti come nel calcio vero).
 
 ## Dati dei giocatori: cosa è incluso e cosa no
 
@@ -55,6 +63,25 @@ Per importarlo quando esce e sovrascrivere le quotazioni approssimative:
 Analogamente i **voti ufficiali** dei giornalisti (Gazzetta, Fantacalcio.it) dopo ogni
 giornata sono un prodotto a pagamento e non vengono usati: il punteggio in questa app è
 calcolato "ad eventi" (vedi sotto).
+
+### Immagini dei "campioncini"
+
+Le card giocatore (vedi sotto) partono senza foto: mostrano un avatar con le iniziali del
+nome su sfondo colorato per ruolo. Per aggiungere le tue immagini in un secondo momento,
+senza toccare il codice, basta valorizzare il campo `immagineUrl` di ogni giocatore in uno
+di questi due modi:
+
+1. **In blocco via CSV**: aggiungi una quinta colonna `immagine` al CSV usato per
+   l'import del listone (`nome,squadra,ruolo,quotazione,immagine`) con l'URL di ogni
+   immagine. Può essere un URL esterno (`https://...`) oppure un path servito
+   staticamente dal frontend, ad es. metti i file in `frontend/public/players/` e scrivi
+   `/players/lautaro-martinez.jpg` nella colonna. Ricarica il CSV dalla sezione
+   "Amministrazione lega" → "Importa listone".
+2. **Giocatore per giocatore**: `PATCH /api/giocatori/:id/immagine` con body
+   `{ "immagineUrl": "https://..." }` (o `null` per rimuoverla).
+
+Se un URL non carica, la card torna automaticamente all'avatar con le iniziali — nessun
+giocatore resta con un'immagine rotta.
 
 ## Dati live: come funzionano
 

@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
 import type { Lega } from "../api/types";
+import { Skeleton } from "../components/Skeleton";
 
 export default function DashboardPage() {
   const [leghe, setLeghe] = useState<Lega[]>([]);
@@ -70,13 +71,22 @@ export default function DashboardPage() {
       {error && <div className="error-box">{error}</div>}
 
       {loading ? (
-        <p className="muted">Caricamento...</p>
+        <div className="grid cols-2">
+          <div className="card">
+            <Skeleton width="55%" height="1.2rem" className="skeleton-line" />
+            <Skeleton width="80%" />
+          </div>
+          <div className="card">
+            <Skeleton width="55%" height="1.2rem" className="skeleton-line" />
+            <Skeleton width="80%" />
+          </div>
+        </div>
       ) : leghe.length === 0 ? (
         <p className="muted">Non fai ancora parte di nessuna lega. Creane una o entra con un codice invito.</p>
       ) : (
         <div className="grid cols-2">
-          {leghe.map((l) => (
-            <div key={l.id} className="card">
+          {leghe.map((l, i) => (
+            <div key={l.id} className="card" style={{ animationDelay: `${i * 60}ms` }}>
               <h3>{l.nome}</h3>
               <p className="muted">
                 Stagione {l.stagione} &middot; Budget {l.budgetIniziale} &middot; Codice invito: <strong>{l.codiceInvito}</strong>

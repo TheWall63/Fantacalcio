@@ -29,6 +29,8 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-shell">
+      <div className="blob blob-1" />
+      <div className="blob blob-2" />
       <div className="card auth-card">
         <h2>Crea il tuo account</h2>
         <p className="muted">Gestisci la tua lega di fantacalcio con gli amici</p>

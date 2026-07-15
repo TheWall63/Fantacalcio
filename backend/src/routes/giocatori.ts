@@ -1,6 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import { parse } from "csv-parse/sync";
+import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 import { RUOLI } from "../types/domain";
@@ -44,7 +45,9 @@ router.get("/:id", requireAuth, async (req, res) => {
   res.json(giocatore);
 });
 
-// Import CSV del "listone" ufficiale (nome,squadra,ruolo,quotazione)
+// Import CSV del "listone" ufficiale (nome,squadra,ruolo,quotazione,immagine)
+// La colonna "immagine" e' opzionale: URL (https://...) o path statico servito
+// dal frontend (es. /players/lautaro-martinez.jpg messo in frontend/public/players/).
 // Chiunque sia autenticato puo' importare: in una lega tra amici non serve
 // un ruolo admin dedicato, ma l'operazione e' idempotente (upsert per nome+squadra).
 router.post("/import", requireAuth, upload.single("file"), async (req, res) => {
@@ -70,6 +73,7 @@ router.post("/import", requireAuth, upload.single("file"), async (req, res) => {
     const squadraSerieA = riga.squadra?.trim();
     const ruolo = riga.ruolo?.trim().toUpperCase();
     const quotazioneRaw = riga.quotazione?.trim();
+    const immagineUrl = riga.immagine?.trim() || undefined;
 
     if (!nome || !squadraSerieA || !ruolo) {
       errori.push(`Riga ${i + 2}: nome/squadra/ruolo mancanti`);
@@ -85,18 +89,45 @@ router.post("/import", requireAuth, upload.single("file"), async (req, res) => {
     if (esistente) {
       await prisma.giocatore.update({
         where: { id: esistente.id },
-        data: { ruolo, ...(quotazione !== undefined && !Number.isNaN(quotazione) ? { quotazione } : {}) },
+        data: {
+          ruolo,
+          ...(quotazione !== undefined && !Number.isNaN(quotazione) ? { quotazione } : {}),
+          ...(immagineUrl ? { immagineUrl } : {}),
+        },
       });
       aggiornati++;
     } else {
       await prisma.giocatore.create({
-        data: { nome, squadraSerieA, ruolo, quotazione: quotazione && !Number.isNaN(quotazione) ? quotazione : null },
+        data: {
+          nome,
+          squadraSerieA,
+          ruolo,
+          quotazione: quotazione && !Number.isNaN(quotazione) ? quotazione : null,
+          immagineUrl: immagineUrl ?? null,
+        },
       });
       creati++;
     }
   }
 
   res.json({ creati, aggiornati, righeTotali: righe.length, errori: errori.slice(0, 20) });
+});
+
+const immagineSchema = z.object({ immagineUrl: z.string().url().nullable() });
+
+// Imposta/rimuove l'immagine del "campioncino" di un singolo giocatore
+router.patch("/:id/immagine", requireAuth, async (req, res) => {
+  const parsed = immagineSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "URL immagine non valido" });
+
+  const giocatore = await prisma.giocatore.findUnique({ where: { id: req.params.id } });
+  if (!giocatore) return res.status(404).json({ error: "Giocatore non trovato" });
+
+  const aggiornato = await prisma.giocatore.update({
+    where: { id: req.params.id },
+    data: { immagineUrl: parsed.data.immagineUrl },
+  });
+  res.json(aggiornato);
 });
 
 export default router;

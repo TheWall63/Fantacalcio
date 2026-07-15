@@ -28,6 +28,8 @@ export default function LoginPage() {
 
   return (
     <div className="auth-shell">
+      <div className="blob blob-1" />
+      <div className="blob blob-2" />
       <div className="card auth-card">
         <h2>⚽ Fantacalcio</h2>
         <p className="muted">Accedi per gestire le tue leghe</p>

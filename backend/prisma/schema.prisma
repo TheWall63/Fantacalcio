@@ -32,8 +32,8 @@ model Lega {
   adminId        String
   createdAt      DateTime @default(now())
 
-  admin     User        @relation("LegaAdmin", fields: [adminId], references: [id])
-  squadre   Squadra[]
+  admin      User      @relation("LegaAdmin", fields: [adminId], references: [id])
+  squadre    Squadra[]
   calendario Scontro[]
 }
 
@@ -45,12 +45,13 @@ model Squadra {
   budgetResiduo Int
   createdAt     DateTime @default(now())
 
-  lega         Lega               @relation(fields: [legaId], references: [id], onDelete: Cascade)
-  utente       User               @relation(fields: [userId], references: [id])
+  lega         Lega            @relation(fields: [legaId], references: [id], onDelete: Cascade)
+  utente       User            @relation(fields: [userId], references: [id])
   rosa         RosaGiocatore[]
   formazioni   Formazione[]
-  scontriCasa  Scontro[]          @relation("ScontroCasa")
-  scontriFuori Scontro[]          @relation("ScontroTrasferta")
+  scontriCasa  Scontro[]       @relation("ScontroCasa")
+  scontriFuori Scontro[]       @relation("ScontroTrasferta")
+  carteBonus   CartaBonus[]
 
   @@unique([legaId, userId])
 }
@@ -60,13 +61,15 @@ model Giocatore {
   nome           String
   squadraSerieA  String
   ruolo          String // P | D | C | A
-  quotazione     Int?    // importata da listone CSV, opzionale
-  externalTeamId Int?    // id squadra su football-data.org, per matching live
+  quotazione     Int? // importata da listone CSV, opzionale
+  immagineUrl    String? // URL o path statico dell'immagine del "campioncino", opzionale
+  externalTeamId Int? // id squadra su football-data.org, per matching live
   attivo         Boolean @default(true)
 
-  rosa           RosaGiocatore[]
-  formazioni     FormazioneGiocatore[]
-  punteggi       PunteggioGiocatore[]
+  rosa       RosaGiocatore[]
+  formazioni FormazioneGiocatore[]
+  punteggi   PunteggioGiocatore[]
+  carteBonus CartaBonus[]
 
   @@index([squadraSerieA])
   @@index([ruolo])
@@ -86,54 +89,56 @@ model RosaGiocatore {
 }
 
 model Giornata {
-  id        String   @id @default(cuid())
-  numero    Int
-  stagione  String   @default("2025/26")
-  stato     String   @default("PROGRAMMATA") // PROGRAMMATA | IN_CORSO | CONCLUSA
+  id         String    @id @default(cuid())
+  numero     Int
+  stagione   String    @default("2025/26")
+  stato      String    @default("PROGRAMMATA") // PROGRAMMATA | IN_CORSO | CONCLUSA
   dataInizio DateTime?
   dataFine   DateTime?
 
-  partite    Partita[]
-  punteggi   PunteggioGiocatore[]
-  formazioni Formazione[]
-  scontri    Scontro[]
+  partite         Partita[]
+  punteggi        PunteggioGiocatore[]
+  formazioni      Formazione[]
+  scontri         Scontro[]
+  carteAperte     CartaBonus[]         @relation("CartaApertura")
+  carteUtilizzate CartaBonus[]         @relation("CartaUtilizzo")
 
   @@unique([numero, stagione])
 }
 
 model Partita {
-  id             String   @id @default(cuid())
-  giornataId     String
-  externalId     Int?     @unique // id su football-data.org
-  squadraCasa    String
-  squadraTrasf   String
-  golCasa        Int?
-  golTrasf       Int?
-  stato          String   @default("SCHEDULED") // SCHEDULED | LIVE | FINISHED
-  dataOra        DateTime?
-  aggiornatoAt   DateTime @updatedAt
+  id           String    @id @default(cuid())
+  giornataId   String
+  externalId   Int?      @unique // id su football-data.org
+  squadraCasa  String
+  squadraTrasf String
+  golCasa      Int?
+  golTrasf     Int?
+  stato        String    @default("SCHEDULED") // SCHEDULED | LIVE | FINISHED
+  dataOra      DateTime?
+  aggiornatoAt DateTime  @updatedAt
 
-  giornata Giornata @relation(fields: [giornataId], references: [id], onDelete: Cascade)
+  giornata Giornata        @relation(fields: [giornataId], references: [id], onDelete: Cascade)
   eventi   EventoPartita[]
 }
 
 model EventoPartita {
-  id         String  @id @default(cuid())
-  partitaId  String
+  id          String  @id @default(cuid())
+  partitaId   String
   giocatoreId String?
-  tipo       String  // GOL | AUTOGOL | ASSIST | AMMONIZIONE | ESPULSIONE | RIGORE_SEGNATO | RIGORE_SBAGLIATO | RIGORE_PARATO
-  minuto     Int?
-  squadra    String  // nome squadra a cui si riferisce l'evento
+  tipo        String // GOL | AUTOGOL | ASSIST | AMMONIZIONE | ESPULSIONE | RIGORE_SEGNATO | RIGORE_SBAGLIATO | RIGORE_PARATO
+  minuto      Int?
+  squadra     String // nome squadra a cui si riferisce l'evento
 
   partita Partita @relation(fields: [partitaId], references: [id], onDelete: Cascade)
 }
 
 model PunteggioGiocatore {
-  id          String   @id @default(cuid())
-  giornataId  String
-  giocatoreId String
-  punti       Float    @default(6) // base 6 + bonus/malus da eventi
-  dettaglio   String?  // JSON string col dettaglio del calcolo
+  id           String   @id @default(cuid())
+  giornataId   String
+  giocatoreId  String
+  punti        Float    @default(6) // base 6 + bonus/malus da eventi
+  dettaglio    String? // JSON string col dettaglio del calcolo
   aggiornatoAt DateTime @updatedAt
 
   giornata  Giornata  @relation(fields: [giornataId], references: [id], onDelete: Cascade)
@@ -147,23 +152,23 @@ model Formazione {
   squadraId  String
   giornataId String
   modulo     String   @default("3-4-3")
-  punteggio  Float?   // calcolato quando la giornata si conclude
+  punteggio  Float? // calcolato quando la giornata si conclude
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  squadra  Squadra               @relation(fields: [squadraId], references: [id], onDelete: Cascade)
-  giornata Giornata              @relation(fields: [giornataId], references: [id], onDelete: Cascade)
+  squadra   Squadra               @relation(fields: [squadraId], references: [id], onDelete: Cascade)
+  giornata  Giornata              @relation(fields: [giornataId], references: [id], onDelete: Cascade)
   giocatori FormazioneGiocatore[]
 
   @@unique([squadraId, giornataId])
 }
 
 model FormazioneGiocatore {
-  id           String  @id @default(cuid())
+  id           String @id @default(cuid())
   formazioneId String
   giocatoreId  String
-  slot         String  // TITOLARE | PANCHINA
-  ordine       Int     @default(0) // ordine in panchina per eventuali sostituzioni
+  slot         String // TITOLARE | PANCHINA
+  ordine       Int    @default(0) // ordine in panchina per eventuali sostituzioni
 
   formazione Formazione @relation(fields: [formazioneId], references: [id], onDelete: Cascade)
   giocatore  Giocatore  @relation(fields: [giocatoreId], references: [id])
@@ -171,20 +176,42 @@ model FormazioneGiocatore {
   @@unique([formazioneId, giocatoreId])
 }
 
+// Pacchetto settimanale "campioncino": una volta per giornata ogni squadra puo'
+// aprire un pacchetto ed estrarre un giocatore casuale dalla propria rosa. Se
+// quel giocatore gioca da titolare riceve +1 al punteggio finale della
+// giornata in cui viene schierato; se non gioca, la carta resta PENDING e si
+// attiva automaticamente alla prima giornata utile in cui viene schierato.
+model CartaBonus {
+  id                 String   @id @default(cuid())
+  squadraId          String
+  giocatoreId        String
+  giornataAperturaId String
+  stato              String   @default("PENDING") // PENDING | USATA
+  giornataUtilizzoId String?
+  createdAt          DateTime @default(now())
+
+  squadra          Squadra   @relation(fields: [squadraId], references: [id], onDelete: Cascade)
+  giocatore        Giocatore @relation(fields: [giocatoreId], references: [id])
+  giornataApertura Giornata  @relation("CartaApertura", fields: [giornataAperturaId], references: [id])
+  giornataUtilizzo Giornata? @relation("CartaUtilizzo", fields: [giornataUtilizzoId], references: [id])
+
+  @@unique([squadraId, giornataAperturaId])
+}
+
 // Calendario a girone all'italiana: scontri diretti tra squadre della lega
 model Scontro {
-  id           String  @id @default(cuid())
-  legaId       String
-  giornataId   String
-  squadraCasaId    String
-  squadraTrasfId   String
-  punteggioCasa    Float?
-  punteggioTrasf   Float?
+  id             String @id @default(cuid())
+  legaId         String
+  giornataId     String
+  squadraCasaId  String
+  squadraTrasfId String
+  punteggioCasa  Float?
+  punteggioTrasf Float?
 
-  lega           Lega     @relation(fields: [legaId], references: [id], onDelete: Cascade)
-  giornata       Giornata @relation(fields: [giornataId], references: [id], onDelete: Cascade)
-  squadraCasa    Squadra  @relation("ScontroCasa", fields: [squadraCasaId], references: [id])
-  squadraTrasf   Squadra  @relation("ScontroTrasferta", fields: [squadraTrasfId], references: [id])
+  lega         Lega     @relation(fields: [legaId], references: [id], onDelete: Cascade)
+  giornata     Giornata @relation(fields: [giornataId], references: [id], onDelete: Cascade)
+  squadraCasa  Squadra  @relation("ScontroCasa", fields: [squadraCasaId], references: [id])
+  squadraTrasf Squadra  @relation("ScontroTrasferta", fields: [squadraTrasfId], references: [id])
 
   @@unique([giornataId, squadraCasaId, squadraTrasfId])
 }

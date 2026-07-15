@@ -139,11 +139,31 @@ async function calcolaPunteggiFormazioni(giornataId: string) {
   });
 
   for (const f of formazioni) {
+    const titolariIds = f.giocatori.map((g) => g.giocatoreId);
     const punteggi = await prisma.punteggioGiocatore.findMany({
-      where: { giornataId, giocatoreId: { in: f.giocatori.map((g) => g.giocatoreId) } },
+      where: { giornataId, giocatoreId: { in: titolariIds } },
     });
-    const totale = punteggi.reduce((acc, p) => acc + p.punti, 0);
-    await prisma.formazione.update({ where: { id: f.id }, data: { punteggio: totale } });
+    const baseTotale = punteggi.reduce((acc, p) => acc + p.punti, 0);
+
+    // Carte bonus "campioncino": +1 per ogni carta il cui giocatore e' titolare
+    // in questa giornata. Includiamo sia quelle ancora PENDING (si attivano
+    // ora) sia quelle gia' USATA proprio su questa giornata, cosi' il ricalcolo
+    // resta idempotente se la sync viene rilanciata piu' volte.
+    const carte = await prisma.cartaBonus.findMany({
+      where: {
+        squadraId: f.squadraId,
+        giocatoreId: { in: titolariIds },
+        OR: [{ stato: "PENDING" }, { stato: "USATA", giornataUtilizzoId: giornataId }],
+      },
+    });
+    const bonusTotale = carte.length;
+
+    await prisma.formazione.update({ where: { id: f.id }, data: { punteggio: baseTotale + bonusTotale } });
+
+    const daAttivare = carte.filter((c) => c.stato === "PENDING");
+    for (const c of daAttivare) {
+      await prisma.cartaBonus.update({ where: { id: c.id }, data: { stato: "USATA", giornataUtilizzoId: giornataId } });
+    }
   }
 }
 
