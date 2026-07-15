@@ -3,8 +3,10 @@ import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../api/client";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function RegisterPage() {
+  useDocumentTitle("Registrati");
   const { register } = useAuth();
   const navigate = useNavigate();
   const [nome, setNome] = useState("");

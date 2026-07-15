@@ -4,8 +4,10 @@ import { Link } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
 import type { Lega } from "../api/types";
 import { Skeleton } from "../components/Skeleton";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function DashboardPage() {
+  useDocumentTitle("Home");
   const [leghe, setLeghe] = useState<Lega[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

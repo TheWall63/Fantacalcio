@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
 import type { CartaBonus, Formazione, RosaGiocatore } from "../api/types";
 import PlayerCard from "../components/PlayerCard";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 const MODULI = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
 const SCHEMA: Record<string, { D: number; C: number; A: number }> = {
@@ -16,6 +17,7 @@ const SCHEMA: Record<string, { D: number; C: number; A: number }> = {
 };
 
 export default function FormazionePage() {
+  useDocumentTitle("Schiera formazione");
   const { squadraId, giornataId } = useParams<{ squadraId: string; giornataId: string }>();
   const [rosa, setRosa] = useState<RosaGiocatore[]>([]);
   const [carte, setCarte] = useState<CartaBonus[]>([]);
