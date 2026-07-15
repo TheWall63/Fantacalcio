@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../api/client";
 import type { Giocatore, Partita } from "../api/types";
 import { SkeletonTable } from "../components/Skeleton";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 interface LiveResponse {
   demo: boolean;
@@ -12,6 +13,7 @@ interface LiveResponse {
 const RUOLI_LABEL: Record<string, string> = { P: "Portiere", D: "Difensore", C: "Centrocampista", A: "Attaccante" };
 
 export default function GiocatoriPage() {
+  useDocumentTitle("Giocatori & Live");
   const [giocatori, setGiocatori] = useState<Giocatore[]>([]);
   const [squadre, setSquadre] = useState<string[]>([]);
   const [live, setLive] = useState<LiveResponse | null>(null);

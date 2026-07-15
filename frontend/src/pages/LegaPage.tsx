@@ -4,11 +4,13 @@ import { apiFetch, ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import type { Giornata, Lega, RigaClassifica } from "../api/types";
 import { Skeleton, SkeletonTable } from "../components/Skeleton";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function LegaPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [lega, setLega] = useState<Lega | null>(null);
+  useDocumentTitle(lega ? lega.nome : "Lega");
   const [classifica, setClassifica] = useState<RigaClassifica[]>([]);
   const [giornate, setGiornate] = useState<Giornata[]>([]);
   const [error, setError] = useState<string | null>(null);

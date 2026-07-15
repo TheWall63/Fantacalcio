@@ -4,10 +4,12 @@ import { apiFetch, ApiError } from "../api/client";
 import type { CartaBonus, Giocatore, Giornata, RosaGiocatore } from "../api/types";
 import PlayerCard from "../components/PlayerCard";
 import PackOpening, { type FaseApertura } from "../components/PackOpening";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 const DURATA_MIN_SHAKE_MS = 1100;
 
 export default function SquadraPage() {
+  useDocumentTitle("La mia squadra");
   const { id } = useParams<{ id: string }>();
   const [rosa, setRosa] = useState<RosaGiocatore[]>([]);
   const [svincolati, setSvincolati] = useState<Giocatore[]>([]);
