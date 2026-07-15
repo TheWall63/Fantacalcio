@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import type { Giocatore } from "../api/types";
 
 const RUOLO_LABEL: Record<string, string> = { P: "Portiere", D: "Difensore", C: "Centrocampista", A: "Attaccante" };
@@ -10,9 +11,10 @@ interface PlayerCardProps {
   onClick?: () => void;
   disabled?: boolean;
   size?: "sm" | "md";
+  index?: number;
 }
 
-export default function PlayerCard({ giocatore, slot, hasBonus, onClick, disabled, size = "md" }: PlayerCardProps) {
+export default function PlayerCard({ giocatore, slot, hasBonus, onClick, disabled, size = "md", index = 0 }: PlayerCardProps) {
   const [immagineNonCaricata, setImmagineNonCaricata] = useState(false);
 
   const iniziali = giocatore.nome
@@ -37,7 +39,14 @@ export default function PlayerCard({ giocatore, slot, hasBonus, onClick, disable
     .join(" ");
 
   return (
-    <button type="button" className={classi} onClick={onClick} disabled={disabled} title={`${giocatore.nome} - ${RUOLO_LABEL[giocatore.ruolo]}`}>
+    <button
+      type="button"
+      className={classi}
+      onClick={onClick}
+      disabled={disabled}
+      title={`${giocatore.nome} - ${RUOLO_LABEL[giocatore.ruolo]}`}
+      style={{ "--i": Math.min(index, 14) } as CSSProperties}
+    >
       {hasBonus && <span className="player-card-bonus">+1</span>}
       <div className="player-card-top">
         <span className="player-card-rating">{giocatore.quotazione ?? "-"}</span>

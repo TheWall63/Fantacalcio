@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import type { Giornata, Lega, RigaClassifica } from "../api/types";
+import { Skeleton, SkeletonTable } from "../components/Skeleton";
 
 export default function LegaPage() {
   const { id } = useParams<{ id: string }>();
@@ -89,7 +90,21 @@ export default function LegaPage() {
     }
   }
 
-  if (!lega) return <p className="muted">Caricamento...</p>;
+  if (!lega) {
+    return (
+      <div>
+        <Skeleton width="40%" height="1.6rem" className="skeleton-line" />
+        <div className="grid cols-2" style={{ marginTop: "1rem" }}>
+          <div className="card">
+            <SkeletonTable rows={4} />
+          </div>
+          <div className="card">
+            <SkeletonTable rows={4} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -118,7 +133,9 @@ export default function LegaPage() {
             <tbody>
               {classifica.map((r, i) => (
                 <tr key={r.squadraId}>
-                  <td>{i + 1}</td>
+                  <td>
+                    <span className={`rank-pos ${i < 3 ? `rank-${i + 1}` : ""}`}>{i + 1}</span>
+                  </td>
                   <td>{r.squadra.nome}</td>
                   <td>
                     <strong>{r.punti}</strong>

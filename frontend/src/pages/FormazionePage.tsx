@@ -141,9 +141,10 @@ export default function FormazionePage() {
           rimette libero.
         </p>
         <div className="player-card-grid">
-          {rosa.map((r) => (
+          {rosa.map((r, i) => (
             <PlayerCard
               key={r.id}
+              index={i}
               giocatore={r.giocatore}
               slot={titolari.has(r.giocatoreId) ? "TITOLARE" : panchina.has(r.giocatoreId) ? "PANCHINA" : null}
               hasBonus={bonusAttivi.has(r.giocatoreId)}

@@ -3,6 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
 import type { CartaBonus, Giocatore, Giornata, RosaGiocatore } from "../api/types";
 import PlayerCard from "../components/PlayerCard";
+import PackOpening, { type FaseApertura } from "../components/PackOpening";
+
+const DURATA_MIN_SHAKE_MS = 1100;
 
 export default function SquadraPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,8 +18,8 @@ export default function SquadraPage() {
   const [q, setQ] = useState("");
   const [prezzi, setPrezzi] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
-  const [aprendoPacchetto, setAprendoPacchetto] = useState(false);
-  const [ultimaCartaAperta, setUltimaCartaAperta] = useState<CartaBonus | null>(null);
+  const [fasePacchetto, setFasePacchetto] = useState<FaseApertura>("idle");
+  const [cartaRivelata, setCartaRivelata] = useState<Giocatore | null>(null);
 
   const ricarica = useCallback(async () => {
     if (!id) return;
@@ -51,19 +54,27 @@ export default function SquadraPage() {
   const carteInAttesa = carte.filter((c) => c.stato === "PENDING");
   const carteUsate = carte.filter((c) => c.stato === "USATA");
 
+  async function attendi(ms: number) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
   async function apriPacchetto() {
     if (!id || !giornataCorrente) return;
-    setAprendoPacchetto(true);
     setError(null);
     setMessaggio(null);
+    setCartaRivelata(null);
+    setFasePacchetto("shaking");
+    const inizio = Date.now();
     try {
       const carta = await apiFetch<CartaBonus>(`/squadre/${id}/pacchetto`, { method: "POST", body: { giornataId: giornataCorrente.id } });
-      setUltimaCartaAperta(carta);
+      const trascorso = Date.now() - inizio;
+      if (trascorso < DURATA_MIN_SHAKE_MS) await attendi(DURATA_MIN_SHAKE_MS - trascorso);
+      setCartaRivelata(carta.giocatore);
+      setFasePacchetto("rivelata");
       await ricarica();
     } catch (err) {
+      setFasePacchetto("idle");
       setError(err instanceof ApiError ? err.message : "Errore nell'apertura del pacchetto");
-    } finally {
-      setAprendoPacchetto(false);
     }
   }
 
@@ -130,19 +141,21 @@ export default function SquadraPage() {
             </p>
           </div>
           {giornataCorrente && (
-            <button disabled={pacchettoGiaAperto || aprendoPacchetto} onClick={apriPacchetto}>
-              {pacchettoGiaAperto ? "Pacchetto gia' aperto" : aprendoPacchetto ? "Apertura..." : `Apri pacchetto (giornata ${giornataCorrente.numero})`}
+            <button disabled={pacchettoGiaAperto || fasePacchetto !== "idle"} onClick={apriPacchetto}>
+              {pacchettoGiaAperto
+                ? "Pacchetto gia' aperto"
+                : fasePacchetto === "shaking"
+                  ? "Apertura..."
+                  : `Apri pacchetto (giornata ${giornataCorrente.numero})`}
             </button>
           )}
         </div>
 
-        {ultimaCartaAperta && (
-          <div className="pacchetto-reveal">
-            <p className="muted" style={{ margin: 0 }}>
-              Hai trovato:
-            </p>
-            <PlayerCard giocatore={ultimaCartaAperta.giocatore} hasBonus />
-          </div>
+        <PackOpening fase={fasePacchetto} giocatore={cartaRivelata} />
+        {fasePacchetto === "rivelata" && cartaRivelata && (
+          <p className="muted" style={{ textAlign: "center", marginTop: "-0.25rem" }}>
+            Hai trovato <strong style={{ color: "var(--text)" }}>{cartaRivelata.nome}</strong>!
+          </p>
         )}
 
         {carteInAttesa.length > 0 && (
@@ -151,8 +164,8 @@ export default function SquadraPage() {
               Carte bonus in attesa
             </h4>
             <div className="player-card-grid">
-              {carteInAttesa.map((c) => (
-                <PlayerCard key={c.id} giocatore={c.giocatore} hasBonus size="sm" />
+              {carteInAttesa.map((c, i) => (
+                <PlayerCard key={c.id} index={i} giocatore={c.giocatore} hasBonus size="sm" />
               ))}
             </div>
           </>
@@ -164,8 +177,8 @@ export default function SquadraPage() {
               Carte gia' utilizzate ({carteUsate.length})
             </summary>
             <div className="player-card-grid" style={{ marginTop: "0.75rem" }}>
-              {carteUsate.map((c) => (
-                <PlayerCard key={c.id} giocatore={c.giocatore} size="sm" />
+              {carteUsate.map((c, i) => (
+                <PlayerCard key={c.id} index={i} giocatore={c.giocatore} size="sm" />
               ))}
             </div>
           </details>
