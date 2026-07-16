@@ -1,25 +1,29 @@
 :root {
-  --bg: #0a0e1a;
-  --bg-elevated: #12172a;
-  --bg-card: rgba(24, 31, 51, 0.72);
-  --bg-card-solid: #181f33;
-  --border: rgba(148, 163, 209, 0.16);
-  --border-strong: rgba(148, 163, 209, 0.28);
-  --text: #eef1fb;
-  --text-dim: #97a0c3;
-  --primary: #22e08f;
-  --primary-dark: #0fb872;
-  --primary-glow: rgba(34, 224, 143, 0.45);
+  /* Palette "stadio notturno": verde campo + oro trofeo al posto del blu/viola
+     generico da SaaS, per dare all'app un'identita' da fantacalcio vero e
+     proprio invece che da dashboard qualunque. */
+  --bg: #060f0b;
+  --bg-elevated: #0d1a13;
+  --bg-card: rgba(15, 28, 21, 0.72);
+  --bg-card-solid: #10201a;
+  --border: rgba(151, 214, 179, 0.14);
+  --border-strong: rgba(151, 214, 179, 0.26);
+  --text: #eef7f1;
+  --text-dim: #93ab9f;
+  --primary: #20d47a;
+  --primary-dark: #0ea968;
+  --primary-glow: rgba(32, 212, 122, 0.45);
   --accent: #7c5cff;
   --accent-2: #38bdf8;
   --gold: #fbbf24;
+  --gold-dark: #d99e12;
   --danger: #f5556b;
   --warn: #fbbf24;
   --live: #f5556b;
   --radius: 14px;
   --radius-sm: 10px;
-  --shadow-soft: 0 8px 24px rgba(3, 6, 16, 0.35);
-  --shadow-strong: 0 16px 40px rgba(3, 6, 16, 0.5);
+  --shadow-soft: 0 8px 24px rgba(2, 8, 5, 0.4);
+  --shadow-strong: 0 16px 40px rgba(2, 8, 5, 0.55);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   color-scheme: dark;
 }
@@ -43,17 +47,34 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Sfondo a mesh radiale, fisso, per dare profondita' senza distrarre */
+/* Sfondo "riflettori da stadio": due coni di luce verde/oro fissi, per dare
+   profondita' senza distrarre, al posto del mesh viola/ciano generico. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   background:
-    radial-gradient(760px circle at 8% -8%, rgba(124, 92, 255, 0.16), transparent 55%),
-    radial-gradient(900px circle at 108% 12%, rgba(34, 224, 143, 0.14), transparent 55%),
-    radial-gradient(700px circle at 50% 118%, rgba(56, 189, 248, 0.12), transparent 55%),
+    radial-gradient(900px circle at 10% -10%, rgba(32, 212, 122, 0.18), transparent 55%),
+    radial-gradient(900px circle at 108% 6%, rgba(251, 191, 36, 0.1), transparent 55%),
+    radial-gradient(760px circle at 50% 122%, rgba(32, 212, 122, 0.12), transparent 55%),
     var(--bg);
+}
+/* Texture a righe da "erba tagliata a strisce", quasi impercettibile, per
+   dare un accenno tattile di terreno di gioco su ogni pagina. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.014) 0px,
+    rgba(255, 255, 255, 0.014) 46px,
+    transparent 46px,
+    transparent 92px
+  );
 }
 
 h1,
@@ -111,10 +132,13 @@ button {
   border: none;
   border-radius: var(--radius-sm);
   padding: 0.65rem 1.15rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  /* Leggerissima trama diagonale sopra al gradiente, per un tocco "maglia da
+     gioco" sui bottoni primari invece del solito flat gradient da SaaS. */
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0px 6px, transparent 6px 14px),
+    linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #04170d;
   font-weight: 700;
-  box-shadow: 0 4px 14px rgba(15, 184, 114, 0.28);
+  box-shadow: 0 4px 14px rgba(14, 169, 104, 0.32);
   transition: transform 0.16s var(--ease-spring), box-shadow 0.2s, filter 0.2s, background 0.2s;
 }
 button:hover:not(:disabled) {
@@ -139,7 +163,7 @@ button.secondary {
 }
 button.secondary:hover:not(:disabled) {
   background: rgba(148, 163, 209, 0.18);
-  box-shadow: 0 6px 18px rgba(3, 6, 16, 0.3);
+  box-shadow: 0 6px 18px rgba(2, 8, 5, 0.3);
 }
 button.danger {
   background: linear-gradient(135deg, #f5556b, #c92e46);
@@ -153,7 +177,7 @@ button.btn-sm {
 
 input,
 select {
-  background: rgba(10, 14, 26, 0.6);
+  background: rgba(8, 18, 13, 0.6);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
@@ -184,7 +208,7 @@ select:focus {
   align-items: center;
   justify-content: space-between;
   padding: 0.9rem 1.5rem;
-  background: rgba(10, 14, 26, 0.72);
+  background: rgba(8, 18, 13, 0.72);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
@@ -215,7 +239,7 @@ select:focus {
   bottom: -2px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--primary), var(--accent-2));
+  background: linear-gradient(90deg, var(--primary), var(--gold));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.25s var(--ease-spring);
@@ -270,7 +294,7 @@ select:focus {
   bottom: -2px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--primary), var(--accent-2));
+  background: linear-gradient(90deg, var(--primary), var(--gold));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.25s var(--ease-spring);
@@ -331,15 +355,29 @@ select:focus {
 
 .brand {
   font-weight: 900;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   letter-spacing: -0.03em;
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.55rem;
 }
-.brand span {
-  background: linear-gradient(120deg, var(--primary), var(--accent-2) 60%, var(--accent));
+/* Stemma circolare al posto della semplice emoji: un tocco da "logo di club" */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 32% 28%, #4dedaa, var(--primary-dark) 75%);
+  box-shadow: 0 0 0 2px var(--gold), 0 4px 10px rgba(32, 212, 122, 0.35);
+  font-size: 1rem;
+  line-height: 1;
+}
+.brand-word {
+  background: linear-gradient(120deg, var(--primary), var(--gold) 55%, var(--primary));
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -370,6 +408,19 @@ main.container {
   margin-bottom: 1.35rem;
   box-shadow: var(--shadow-soft);
   animation: fadeInUp 0.4s var(--ease-spring) both;
+}
+/* Barra verde/oro in cima ad ogni pannello, come uno "scoreboard" da stadio */
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+  opacity: 0.8;
+  pointer-events: none;
 }
 
 .card h2,
@@ -404,13 +455,17 @@ th {
   font-weight: 700;
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--border-strong);
 }
 tbody tr {
   transition: background 0.15s;
 }
+tbody tr:nth-child(even) td {
+  background: rgba(32, 212, 122, 0.025);
+}
 tbody tr:hover td {
-  background: rgba(148, 163, 209, 0.05);
+  background: rgba(32, 212, 122, 0.08);
 }
 
 .badge {
@@ -464,9 +519,19 @@ tbody tr:hover td {
   font-size: 0.8rem;
 }
 .rank-1 {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(150deg, #ffe487, #d4a017);
   color: #3a2400;
   box-shadow: 0 0 12px 1px rgba(212, 160, 23, 0.55);
+}
+.rank-1::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+  background-size: 250% 250%;
+  animation: packShineMove 3s linear infinite;
 }
 .rank-2 {
   background: linear-gradient(150deg, #eef1fb, #b9c1d9);
@@ -532,6 +597,11 @@ tbody tr:hover td {
   min-height: 100%;
   padding: 1.5rem;
   overflow: hidden;
+  /* Cerchio di centrocampo + linea laterale, come watermark del terreno di gioco */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Cg fill='none' stroke='%2320d47a' stroke-opacity='0.14' stroke-width='2'%3E%3Cline x1='200' y1='0' x2='200' y2='400'/%3E%3Ccircle cx='200' cy='200' r='72'/%3E%3Ccircle cx='200' cy='200' r='2.5' fill='%2320d47a' fill-opacity='0.14' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(680px, 90vw);
 }
 .auth-shell .blob {
   position: absolute;
@@ -544,7 +614,7 @@ tbody tr:hover td {
 .auth-shell .blob-1 {
   width: 380px;
   height: 380px;
-  background: var(--accent);
+  background: var(--gold);
   top: -120px;
   left: -100px;
 }
@@ -608,7 +678,7 @@ tbody tr:hover td {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(3, 6, 16, 0.72);
+  background: rgba(3, 10, 6, 0.72);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
@@ -1003,7 +1073,7 @@ tbody tr:hover td {
   width: 140px;
   height: 190px;
   border-radius: 16px;
-  background: linear-gradient(150deg, var(--accent) 0%, #4527a8 55%, #1c1147 100%);
+  background: linear-gradient(150deg, var(--primary) 0%, #0b3d24 55%, #051911 100%);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
@@ -1333,7 +1403,7 @@ tbody tr:hover td {
 @keyframes packGlowPulse {
   0%,
   100% {
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(124, 92, 255, 0.5);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(32, 212, 122, 0.5);
   }
   50% {
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 32px 8px rgba(251, 191, 36, 0.55);

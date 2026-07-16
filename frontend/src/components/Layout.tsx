@@ -48,7 +48,7 @@ export default function Layout() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
-          ⚽ Fanta<span>calcio</span>
+          <span className="brand-mark">⚽</span> Fanta<span className="brand-word">calcio</span>
         </div>
         <nav>
           <div className="nav-dropdown" onMouseEnter={apriLeghe} onMouseLeave={chiudiLegheConRitardo}>
