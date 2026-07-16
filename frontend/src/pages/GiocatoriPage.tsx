@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../api/client";
 import type { Giocatore, Partita } from "../api/types";
 import { SkeletonTable } from "../components/Skeleton";
+import GiocatoreStatsModal from "../components/GiocatoreStatsModal";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 interface LiveResponse {
@@ -21,6 +22,7 @@ export default function GiocatoriPage() {
   const [ruolo, setRuolo] = useState("");
   const [squadra, setSquadra] = useState("");
   const [loading, setLoading] = useState(true);
+  const [giocatoreSelezionato, setGiocatoreSelezionato] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<string[]>("/giocatori/squadre").then(setSquadre).catch(() => {});
@@ -130,7 +132,11 @@ export default function GiocatoriPage() {
             <tbody>
               {giocatori.map((g) => (
                 <tr key={g.id}>
-                  <td>{g.nome}</td>
+                  <td>
+                    <button type="button" className="link-button" onClick={() => setGiocatoreSelezionato(g.id)}>
+                      {g.nome}
+                    </button>
+                  </td>
                   <td>
                     <span className={`badge ruolo-${g.ruolo}`}>{g.ruolo}</span>
                   </td>
@@ -149,6 +155,10 @@ export default function GiocatoriPage() {
           </table>
         )}
       </div>
+
+      {giocatoreSelezionato && (
+        <GiocatoreStatsModal giocatoreId={giocatoreSelezionato} onClose={() => setGiocatoreSelezionato(null)} />
+      )}
     </div>
   );
 }

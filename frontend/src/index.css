@@ -1,25 +1,29 @@
 :root {
-  --bg: #0a0e1a;
-  --bg-elevated: #12172a;
-  --bg-card: rgba(24, 31, 51, 0.72);
-  --bg-card-solid: #181f33;
-  --border: rgba(148, 163, 209, 0.16);
-  --border-strong: rgba(148, 163, 209, 0.28);
-  --text: #eef1fb;
-  --text-dim: #97a0c3;
-  --primary: #22e08f;
-  --primary-dark: #0fb872;
-  --primary-glow: rgba(34, 224, 143, 0.45);
+  /* Palette "stadio notturno": verde campo + oro trofeo al posto del blu/viola
+     generico da SaaS, per dare all'app un'identita' da fantacalcio vero e
+     proprio invece che da dashboard qualunque. */
+  --bg: #060f0b;
+  --bg-elevated: #0d1a13;
+  --bg-card: rgba(15, 28, 21, 0.72);
+  --bg-card-solid: #10201a;
+  --border: rgba(151, 214, 179, 0.14);
+  --border-strong: rgba(151, 214, 179, 0.26);
+  --text: #eef7f1;
+  --text-dim: #93ab9f;
+  --primary: #20d47a;
+  --primary-dark: #0ea968;
+  --primary-glow: rgba(32, 212, 122, 0.45);
   --accent: #7c5cff;
   --accent-2: #38bdf8;
   --gold: #fbbf24;
+  --gold-dark: #d99e12;
   --danger: #f5556b;
   --warn: #fbbf24;
   --live: #f5556b;
   --radius: 14px;
   --radius-sm: 10px;
-  --shadow-soft: 0 8px 24px rgba(3, 6, 16, 0.35);
-  --shadow-strong: 0 16px 40px rgba(3, 6, 16, 0.5);
+  --shadow-soft: 0 8px 24px rgba(2, 8, 5, 0.4);
+  --shadow-strong: 0 16px 40px rgba(2, 8, 5, 0.55);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   color-scheme: dark;
 }
@@ -43,17 +47,34 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Sfondo a mesh radiale, fisso, per dare profondita' senza distrarre */
+/* Sfondo "riflettori da stadio": due coni di luce verde/oro fissi, per dare
+   profondita' senza distrarre, al posto del mesh viola/ciano generico. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   background:
-    radial-gradient(760px circle at 8% -8%, rgba(124, 92, 255, 0.16), transparent 55%),
-    radial-gradient(900px circle at 108% 12%, rgba(34, 224, 143, 0.14), transparent 55%),
-    radial-gradient(700px circle at 50% 118%, rgba(56, 189, 248, 0.12), transparent 55%),
+    radial-gradient(900px circle at 10% -10%, rgba(32, 212, 122, 0.18), transparent 55%),
+    radial-gradient(900px circle at 108% 6%, rgba(251, 191, 36, 0.1), transparent 55%),
+    radial-gradient(760px circle at 50% 122%, rgba(32, 212, 122, 0.12), transparent 55%),
     var(--bg);
+}
+/* Texture a righe da "erba tagliata a strisce", quasi impercettibile, per
+   dare un accenno tattile di terreno di gioco su ogni pagina. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.014) 0px,
+    rgba(255, 255, 255, 0.014) 46px,
+    transparent 46px,
+    transparent 92px
+  );
 }
 
 h1,
@@ -111,10 +132,13 @@ button {
   border: none;
   border-radius: var(--radius-sm);
   padding: 0.65rem 1.15rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  /* Leggerissima trama diagonale sopra al gradiente, per un tocco "maglia da
+     gioco" sui bottoni primari invece del solito flat gradient da SaaS. */
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0px 6px, transparent 6px 14px),
+    linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #04170d;
   font-weight: 700;
-  box-shadow: 0 4px 14px rgba(15, 184, 114, 0.28);
+  box-shadow: 0 4px 14px rgba(14, 169, 104, 0.32);
   transition: transform 0.16s var(--ease-spring), box-shadow 0.2s, filter 0.2s, background 0.2s;
 }
 button:hover:not(:disabled) {
@@ -139,17 +163,21 @@ button.secondary {
 }
 button.secondary:hover:not(:disabled) {
   background: rgba(148, 163, 209, 0.18);
-  box-shadow: 0 6px 18px rgba(3, 6, 16, 0.3);
+  box-shadow: 0 6px 18px rgba(2, 8, 5, 0.3);
 }
 button.danger {
   background: linear-gradient(135deg, #f5556b, #c92e46);
   color: white;
   box-shadow: 0 4px 14px rgba(245, 85, 107, 0.3);
 }
+button.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+}
 
 input,
 select {
-  background: rgba(10, 14, 26, 0.6);
+  background: rgba(8, 18, 13, 0.6);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
@@ -180,7 +208,7 @@ select:focus {
   align-items: center;
   justify-content: space-between;
   padding: 0.9rem 1.5rem;
-  background: rgba(10, 14, 26, 0.72);
+  background: rgba(8, 18, 13, 0.72);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
@@ -211,7 +239,7 @@ select:focus {
   bottom: -2px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--primary), var(--accent-2));
+  background: linear-gradient(90deg, var(--primary), var(--gold));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.25s var(--ease-spring);
@@ -229,17 +257,127 @@ select:focus {
   transform: scaleX(1);
 }
 
+/* Dropdown "Le mie leghe" nella topbar */
+.nav-dropdown {
+  position: relative;
+}
+.nav-dropdown-trigger {
+  position: relative;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0 0 0.2rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  transition: color 0.15s;
+}
+.nav-dropdown-trigger:hover,
+.nav-dropdown-trigger:active {
+  background: none;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+.nav-dropdown-trigger:hover {
+  color: var(--text);
+}
+.nav-dropdown-trigger::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s var(--ease-spring);
+}
+.nav-dropdown-trigger:hover::after,
+.nav-dropdown-trigger.active::after {
+  transform: scaleX(1);
+}
+.nav-dropdown-trigger.active {
+  color: var(--text);
+}
+.nav-dropdown-caret {
+  font-size: 0.65rem;
+}
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.9rem);
+  left: 0;
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-strong);
+  padding: 0.5rem;
+  z-index: 30;
+  animation: slideDown 0.2s var(--ease-spring) both;
+}
+.nav-dropdown-item {
+  display: block;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s;
+}
+.nav-dropdown-item:hover {
+  background: rgba(148, 163, 209, 0.1);
+  text-decoration: none;
+}
+.nav-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.35rem 0;
+}
+.nav-dropdown-empty {
+  display: block;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+}
+
 .brand {
   font-weight: 900;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   letter-spacing: -0.03em;
   color: var(--text);
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.55rem;
 }
-.brand span {
-  background: linear-gradient(120deg, var(--primary), var(--accent-2) 60%, var(--accent));
+/* Stemma circolare al posto della semplice emoji: un tocco da "logo di club" */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 32% 28%, #4dedaa, var(--primary-dark) 75%);
+  box-shadow: 0 0 0 2px var(--gold), 0 4px 10px rgba(32, 212, 122, 0.35);
+  font-size: 1rem;
+  line-height: 1;
+}
+.brand-word {
+  background: linear-gradient(120deg, var(--primary), var(--gold) 55%, var(--primary));
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -270,6 +408,19 @@ main.container {
   margin-bottom: 1.35rem;
   box-shadow: var(--shadow-soft);
   animation: fadeInUp 0.4s var(--ease-spring) both;
+}
+/* Barra verde/oro in cima ad ogni pannello, come uno "scoreboard" da stadio */
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(90deg, var(--primary), var(--gold));
+  opacity: 0.8;
+  pointer-events: none;
 }
 
 .card h2,
@@ -304,13 +455,17 @@ th {
   font-weight: 700;
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--border-strong);
 }
 tbody tr {
   transition: background 0.15s;
 }
+tbody tr:nth-child(even) td {
+  background: rgba(32, 212, 122, 0.025);
+}
 tbody tr:hover td {
-  background: rgba(148, 163, 209, 0.05);
+  background: rgba(32, 212, 122, 0.08);
 }
 
 .badge {
@@ -364,9 +519,19 @@ tbody tr:hover td {
   font-size: 0.8rem;
 }
 .rank-1 {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(150deg, #ffe487, #d4a017);
   color: #3a2400;
   box-shadow: 0 0 12px 1px rgba(212, 160, 23, 0.55);
+}
+.rank-1::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+  background-size: 250% 250%;
+  animation: packShineMove 3s linear infinite;
 }
 .rank-2 {
   background: linear-gradient(150deg, #eef1fb, #b9c1d9);
@@ -412,6 +577,10 @@ tbody tr:hover td {
   color: var(--text-dim);
 }
 
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
 .flex-between {
   display: flex;
   align-items: center;
@@ -428,6 +597,11 @@ tbody tr:hover td {
   min-height: 100%;
   padding: 1.5rem;
   overflow: hidden;
+  /* Cerchio di centrocampo + linea laterale, come watermark del terreno di gioco */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Cg fill='none' stroke='%2320d47a' stroke-opacity='0.14' stroke-width='2'%3E%3Cline x1='200' y1='0' x2='200' y2='400'/%3E%3Ccircle cx='200' cy='200' r='72'/%3E%3Ccircle cx='200' cy='200' r='2.5' fill='%2320d47a' fill-opacity='0.14' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(680px, 90vw);
 }
 .auth-shell .blob {
   position: absolute;
@@ -440,7 +614,7 @@ tbody tr:hover td {
 .auth-shell .blob-1 {
   width: 380px;
   height: 380px;
-  background: var(--accent);
+  background: var(--gold);
   top: -120px;
   left: -100px;
 }
@@ -479,6 +653,181 @@ tbody tr:hover td {
   font-variant-numeric: tabular-nums;
 }
 
+/* Link testuale che apre il dettaglio giocatore */
+.link-button {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s;
+}
+.link-button:hover {
+  color: var(--primary);
+  text-decoration: underline;
+  transform: none;
+  box-shadow: none;
+  background: none;
+  filter: none;
+}
+
+/* Modale dettaglio giocatore */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 10, 6, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  padding: 1.5rem;
+  animation: fadeInUp 0.18s ease both;
+}
+.modal-panel {
+  position: relative;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-strong);
+  padding: 1.75rem;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: cardPop 0.22s var(--ease-spring) both;
+}
+.modal-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  background: rgba(148, 163, 209, 0.12);
+  border: none;
+  color: var(--text-dim);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  padding: 0;
+  box-shadow: none;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.modal-close:hover {
+  color: var(--text);
+  background: rgba(148, 163, 209, 0.22);
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.modal-player-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.35rem;
+  padding-right: 2rem;
+}
+.modal-player-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.modal-player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+}
+.stat-tile {
+  background: rgba(148, 163, 209, 0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+}
+.stat-tile strong {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+.stat-tile span {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.presenza-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.presenza-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.66rem;
+  font-weight: 800;
+  cursor: default;
+}
+.presenza-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  font-style: normal;
+}
+.presenza-TITOLARE {
+  background: var(--primary);
+  color: #04170d;
+}
+.presenza-SUBENTRATO {
+  background: #fb923c;
+  color: #3a1a02;
+}
+.presenza-NON_CONVOCATO {
+  background: var(--danger);
+  color: #ffffff;
+}
+.presenza-INFORTUNATO {
+  background: #67e8f9;
+  color: #023138;
+}
+
+.presenza-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.presenza-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 /* Campioncino: card giocatore in stile "Ultimate Team" */
 .player-card-grid {
   display: grid;
@@ -487,6 +836,10 @@ tbody tr:hover td {
 }
 
 .player-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --lift: 0px;
+  --scale: 1;
   position: relative;
   width: 100%;
   max-width: 150px;
@@ -503,10 +856,12 @@ tbody tr:hover td {
   color: #fff;
   font-weight: 700;
   overflow: hidden;
+  transform-style: preserve-3d;
+  transform: perspective(700px) rotateX(var(--ry)) rotateY(var(--rx)) translateY(var(--lift)) scale(var(--scale));
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transition: transform 0.22s var(--ease-spring), box-shadow 0.22s, filter 0.22s;
+  transition: transform 0.12s ease-out, box-shadow 0.22s, filter 0.22s;
   filter: saturate(0.7) brightness(0.8);
-  animation: cardEnter 0.5s var(--ease-spring) both;
+  animation: cardEnter 0.5s var(--ease-spring) backwards;
   animation-delay: calc(var(--i, 0) * 45ms);
 }
 .player-card::before {
@@ -524,16 +879,34 @@ tbody tr:hover td {
 .player-card:hover:not(:disabled)::before {
   animation: shineSweep 0.9s ease;
 }
+.player-card::after {
+  /* riflesso che segue il cursore, per rinforzare la sensazione di 3D */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.4), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+.player-card:hover:not(:disabled)::after {
+  opacity: 1;
+}
 .player-card:hover:not(:disabled) {
-  transform: translateY(-6px) scale(1.035);
+  --lift: -6px;
+  --scale: 1.035;
   filter: saturate(0.95) brightness(0.96);
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 .player-card:active:not(:disabled) {
-  transform: translateY(-2px) scale(0.98);
+  --lift: -2px;
+  --scale: 0.98;
+  transition: transform 0.05s ease-out, box-shadow 0.22s, filter 0.22s;
 }
 .player-card:disabled {
   cursor: not-allowed;
+  filter: saturate(0.35) brightness(0.65);
 }
 .player-card.is-titolare,
 .player-card.is-panchina {
@@ -700,7 +1073,7 @@ tbody tr:hover td {
   width: 140px;
   height: 190px;
   border-radius: 16px;
-  background: linear-gradient(150deg, var(--accent) 0%, #4527a8 55%, #1c1147 100%);
+  background: linear-gradient(150deg, var(--primary) 0%, #0b3d24 55%, #051911 100%);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
@@ -762,6 +1135,144 @@ tbody tr:hover td {
   box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.8);
   animation: sparkleFloat 0.9s ease-out both;
   pointer-events: none;
+}
+
+/* Selettore moduli a "chip" (wizard impostazioni lega) */
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.chip {
+  background: rgba(148, 163, 209, 0.08);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 0.5rem 1.05rem;
+  font-weight: 700;
+  transition: transform 0.16s var(--ease-spring), background 0.2s, color 0.2s, border-color 0.2s;
+  box-shadow: none;
+}
+.chip:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: none;
+  box-shadow: none;
+  border-color: var(--border-strong);
+}
+.chip.selected {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #04170d;
+  border-color: transparent;
+}
+
+/* Toggle on/off (impostazioni lega) */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.switch-row:last-child {
+  border-bottom: none;
+}
+.switch-row-text strong {
+  display: block;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 27px;
+  flex-shrink: 0;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: rgba(148, 163, 209, 0.22);
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+.switch-slider::before {
+  content: "";
+  position: absolute;
+  height: 21px;
+  width: 21px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s var(--ease-spring);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.switch input:checked + .switch-slider {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+.switch input:checked + .switch-slider::before {
+  transform: translateX(21px);
+}
+
+/* Scelta singola tra opzioni con descrizione (wizard impostazioni lega) */
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  text-align: left;
+  background: rgba(148, 163, 209, 0.06);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.05rem;
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: none;
+  transition: border-color 0.2s, background 0.2s, transform 0.16s var(--ease-spring);
+}
+.choice-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: none;
+  box-shadow: none;
+  border-color: var(--border-strong);
+}
+.choice-card .muted {
+  font-weight: 500;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.choice-card.selected {
+  border-color: var(--primary);
+  background: rgba(34, 224, 143, 0.08);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.step-dots {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+.step-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition: background 0.2s, transform 0.2s;
+}
+.step-dots span.active {
+  background: var(--primary);
+  transform: scale(1.3);
 }
 
 /* Skeleton loading */
@@ -892,7 +1403,7 @@ tbody tr:hover td {
 @keyframes packGlowPulse {
   0%,
   100% {
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(124, 92, 255, 0.5);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(32, 212, 122, 0.5);
   }
   50% {
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 32px 8px rgba(251, 191, 36, 0.55);
@@ -956,6 +1467,83 @@ tbody tr:hover td {
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+/* Coriandoli */
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  animation-name: confettiFall;
+  animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+@keyframes confettiFall {
+  0% {
+    transform: translate(0, -10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--drift), 105vh) rotate(var(--spin));
+    opacity: 0.9;
+  }
+}
+
+/* Notifiche toast */
+.toast-stack {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  z-index: 70;
+  max-width: min(340px, calc(100vw - 2.5rem));
+}
+.toast {
+  padding: 0.75rem 1.05rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-strong);
+  animation: toastLifecycle 3.4s ease forwards;
+}
+.toast-success {
+  background: rgba(15, 184, 114, 0.92);
+  color: #04170d;
+  border: 1px solid rgba(34, 224, 143, 0.5);
+}
+.toast-error {
+  background: rgba(199, 40, 63, 0.92);
+  color: #fff;
+  border: 1px solid rgba(245, 85, 107, 0.5);
+}
+@keyframes toastLifecycle {
+  0% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  8% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  88% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(8px);
+    opacity: 0;
   }
 }
 

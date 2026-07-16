@@ -1,16 +1,27 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
 import type { Lega } from "../api/types";
 import { Skeleton } from "../components/Skeleton";
+import Confetti from "../components/Confetti";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useToast } from "../context/ToastContext";
+
+interface JoinRisposta {
+  lega: Lega;
+  squadra: { id: string };
+  calendarioGenerato: boolean;
+}
 
 export default function DashboardPage() {
   useDocumentTitle("Home");
+  const { showToast } = useToast();
+  const navigate = useNavigate();
   const [leghe, setLeghe] = useState<Lega[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [festaId, setFestaId] = useState(0);
 
   const [nomeLega, setNomeLega] = useState("");
   const [nomeSquadra, setNomeSquadra] = useState("");
@@ -40,12 +51,11 @@ export default function DashboardPage() {
     setError(null);
     setBusy(true);
     try {
-      await apiFetch("/leghe", { method: "POST", body: { nome: nomeLega, nomeSquadra, budgetIniziale: budget } });
-      setNomeLega("");
-      setNomeSquadra("");
-      await ricarica();
+      const lega = await apiFetch<Lega>("/leghe", { method: "POST", body: { nome: nomeLega, nomeSquadra, budgetIniziale: budget } });
+      showToast(`Lega "${nomeLega}" creata! Ora configurala.`);
+      navigate(`/leghe/${lega.id}/setup`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Errore nella creazione della lega");
+      showToast(err instanceof ApiError ? err.message : "Errore nella creazione della lega", "error");
     } finally {
       setBusy(false);
     }
@@ -56,12 +66,21 @@ export default function DashboardPage() {
     setError(null);
     setBusy(true);
     try {
-      await apiFetch("/leghe/join", { method: "POST", body: { codiceInvito: codiceInvito.toUpperCase(), nomeSquadra: nomeSquadraJoin } });
+      const res = await apiFetch<JoinRisposta>("/leghe/join", {
+        method: "POST",
+        body: { codiceInvito: codiceInvito.toUpperCase(), nomeSquadra: nomeSquadraJoin },
+      });
       setCodiceInvito("");
       setNomeSquadraJoin("");
+      setFestaId((f) => f + 1);
+      if (res.calendarioGenerato) {
+        showToast(`Siete in 8! Il calendario di "${res.lega.nome}" e' stato generato in automatico.`);
+      } else {
+        showToast(`Iscritto a "${res.lega.nome}"!`);
+      }
       await ricarica();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Errore nell'iscrizione alla lega");
+      showToast(err instanceof ApiError ? err.message : "Errore nell'iscrizione alla lega", "error");
     } finally {
       setBusy(false);
     }
@@ -69,6 +88,7 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {festaId > 0 && <Confetti burstId={festaId} pezzi={34} />}
       <h2>Le mie leghe</h2>
       {error && <div className="error-box">{error}</div>}
 

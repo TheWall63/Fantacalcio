@@ -3,7 +3,8 @@ import { fetchGiornataSerieA, isLiveDataConfigured, PartitaEsterna } from "./foo
 import { generaGiornataDemo } from "./demoData";
 import { trovaSquadraDaNomeEsterno } from "../config/squadreSerieA";
 import { stessoGiocatore } from "../lib/matching";
-import { BONUS_MALUS, TipoEvento } from "../types/domain";
+import { BONUS_MALUS, TipoEvento, SOGLIE_MODIFICATORE_DIFESA } from "../types/domain";
+import { determinaPresenza } from "../lib/presenza";
 
 export interface SyncResult {
   demo: boolean;
@@ -20,7 +21,7 @@ export async function sincronizzaGiornata(giornataId: string): Promise<SyncResul
 
   const demo = !isLiveDataConfigured();
   const partiteEsterne: PartitaEsterna[] = demo
-    ? generaGiornataDemo(giornata.numero)
+    ? await generaGiornataDemo(giornata.numero)
     : await fetchGiornataSerieA(giornata.numero);
 
   for (const pe of partiteEsterne) {
@@ -60,7 +61,7 @@ export async function sincronizzaGiornata(giornataId: string): Promise<SyncResul
     }
   }
 
-  const giocatoriValutati = await calcolaPunteggiGiornata(giornataId);
+  const giocatoriValutati = await calcolaPunteggiGiornata(giornataId, demo);
   await calcolaPunteggiFormazioni(giornataId);
   await calcolaScontriDiretti(giornataId);
 
@@ -75,7 +76,7 @@ async function risolviGiocatore(nomeEsterno: string): Promise<string | null> {
   return match?.id ?? null;
 }
 
-async function calcolaPunteggiGiornata(giornataId: string): Promise<number> {
+async function calcolaPunteggiGiornata(giornataId: string, demo: boolean): Promise<number> {
   const partite = await prisma.partita.findMany({
     where: { giornataId },
     include: { eventi: true },
@@ -96,9 +97,14 @@ async function calcolaPunteggiGiornata(giornataId: string): Promise<number> {
   });
   for (const g of giocatoriCoinvolti) puntiPerGiocatore.set(g.id, 6);
 
+  // Chi ha almeno un evento (gol/assist/cartellino/rigore) ha sicuramente
+  // giocato: lo usiamo per stimare la presenza (vedi lib/presenza.ts).
+  const giocatoriConEventi = new Set<string>();
+
   for (const p of partite) {
     for (const ev of p.eventi) {
       if (!ev.giocatoreId) continue;
+      giocatoriConEventi.add(ev.giocatoreId);
       const bonus = BONUS_MALUS[ev.tipo as TipoEvento] ?? 0;
       puntiPerGiocatore.set(ev.giocatoreId, (puntiPerGiocatore.get(ev.giocatoreId) ?? 6) + bonus);
     }
@@ -112,10 +118,11 @@ async function calcolaPunteggiGiornata(giornataId: string): Promise<number> {
 
   const voci = Array.from(puntiPerGiocatore.entries());
   for (const [giocatoreId, punti] of voci) {
+    const presenza = determinaPresenza(giocatoreId, giornataId, giocatoriConEventi.has(giocatoreId), demo);
     await prisma.punteggioGiocatore.upsert({
       where: { giornataId_giocatoreId: { giornataId, giocatoreId } },
-      create: { giornataId, giocatoreId, punti },
-      update: { punti },
+      create: { giornataId, giocatoreId, punti, presenza },
+      update: { punti, presenza },
     });
   }
   return voci.length;
@@ -132,37 +139,100 @@ async function applicaBonusRisultato(squadraSerieA: string, golSubiti: number, p
   }
 }
 
+// Il punteggio di ogni formazione dipende dalle impostazioni della SUA lega
+// (carte bonus attive o no, modificatore difesa, bonus mvp): raggruppiamo per
+// legaId cosi' le impostazioni di una lega non influenzano mai il punteggio
+// di un'altra lega, anche quando condividono lo stesso giocatore/giornata
+// (PunteggioGiocatore resta globale, questi bonus si sommano solo qui sopra).
 async function calcolaPunteggiFormazioni(giornataId: string) {
   const formazioni = await prisma.formazione.findMany({
     where: { giornataId },
-    include: { giocatori: { where: { slot: "TITOLARE" } } },
+    include: { giocatori: { where: { slot: "TITOLARE" } }, squadra: true },
   });
+  if (formazioni.length === 0) return;
 
+  const legaIds = Array.from(new Set(formazioni.map((f) => f.squadra.legaId)));
+  const leghe = await prisma.lega.findMany({ where: { id: { in: legaIds } } });
+  const legaById = new Map(leghe.map((l) => [l.id, l]));
+
+  const formazioniPerLega = new Map<string, typeof formazioni>();
   for (const f of formazioni) {
-    const titolariIds = f.giocatori.map((g) => g.giocatoreId);
-    const punteggi = await prisma.punteggioGiocatore.findMany({
-      where: { giornataId, giocatoreId: { in: titolariIds } },
-    });
-    const baseTotale = punteggi.reduce((acc, p) => acc + p.punti, 0);
+    const arr = formazioniPerLega.get(f.squadra.legaId) ?? [];
+    arr.push(f);
+    formazioniPerLega.set(f.squadra.legaId, arr);
+  }
 
-    // Carte bonus "campioncino": +1 per ogni carta il cui giocatore e' titolare
-    // in questa giornata. Includiamo sia quelle ancora PENDING (si attivano
-    // ora) sia quelle gia' USATA proprio su questa giornata, cosi' il ricalcolo
-    // resta idempotente se la sync viene rilanciata piu' volte.
-    const carte = await prisma.cartaBonus.findMany({
-      where: {
-        squadraId: f.squadraId,
-        giocatoreId: { in: titolariIds },
-        OR: [{ stato: "PENDING" }, { stato: "USATA", giornataUtilizzoId: giornataId }],
-      },
-    });
-    const bonusTotale = carte.length;
+  for (const [legaId, formazioniLega] of formazioniPerLega) {
+    const lega = legaById.get(legaId);
+    if (!lega) continue;
 
-    await prisma.formazione.update({ where: { id: f.id }, data: { punteggio: baseTotale + bonusTotale } });
+    const tuttiTitolariIds = Array.from(new Set(formazioniLega.flatMap((f) => f.giocatori.map((g) => g.giocatoreId))));
+    const [punteggiTitolari, giocatoriTitolari] = await Promise.all([
+      prisma.punteggioGiocatore.findMany({ where: { giornataId, giocatoreId: { in: tuttiTitolariIds } } }),
+      prisma.giocatore.findMany({ where: { id: { in: tuttiTitolariIds } }, select: { id: true, ruolo: true } }),
+    ]);
+    const puntiById = new Map(punteggiTitolari.map((p) => [p.giocatoreId, p.punti]));
+    const ruoloById = new Map(giocatoriTitolari.map((g) => [g.id, g.ruolo]));
 
-    const daAttivare = carte.filter((c) => c.stato === "PENDING");
-    for (const c of daAttivare) {
-      await prisma.cartaBonus.update({ where: { id: c.id }, data: { stato: "USATA", giornataUtilizzoId: giornataId } });
+    // MVP di giornata per questa lega: il titolare col voto base piu' alto
+    let mvpGiocatoreId: string | null = null;
+    if (lega.bonusMvp) {
+      let migliorPunti = -Infinity;
+      for (const [gid, punti] of puntiById) {
+        if (punti > migliorPunti) {
+          migliorPunti = punti;
+          mvpGiocatoreId = gid;
+        }
+      }
+    }
+
+    for (const f of formazioniLega) {
+      const titolariIds = f.giocatori.map((g) => g.giocatoreId);
+      const baseTotale = titolariIds.reduce((acc, gid) => acc + (puntiById.get(gid) ?? 0), 0);
+      let bonusTotale = 0;
+
+      // Carte bonus "campioncino": +1 per ogni carta il cui giocatore e'
+      // titolare in questa giornata, solo se la lega usa questa modalita'.
+      // Includiamo sia quelle ancora PENDING (si attivano ora) sia quelle gia'
+      // USATA proprio su questa giornata, cosi' il ricalcolo resta idempotente
+      // se la sync viene rilanciata piu' volte.
+      if (lega.cartebonusAttive) {
+        const carte = await prisma.cartaBonus.findMany({
+          where: {
+            squadraId: f.squadraId,
+            giocatoreId: { in: titolariIds },
+            OR: [{ stato: "PENDING" }, { stato: "USATA", giornataUtilizzoId: giornataId }],
+          },
+        });
+        bonusTotale += carte.length;
+
+        const daAttivare = carte.filter((c) => c.stato === "PENDING");
+        for (const c of daAttivare) {
+          await prisma.cartaBonus.update({ where: { id: c.id }, data: { stato: "USATA", giornataUtilizzoId: giornataId } });
+        }
+      }
+
+      // Modificatore difesa: bonus/malus in base alla media voto dei titolari
+      // portiere+difensori (stile Leghe FC).
+      if (lega.modificatoreDifesa) {
+        const votiPD = titolariIds
+          .filter((gid) => ruoloById.get(gid) === "P" || ruoloById.get(gid) === "D")
+          .map((gid) => puntiById.get(gid))
+          .filter((p): p is number => p !== undefined);
+        if (votiPD.length > 0) {
+          const media = votiPD.reduce((acc, p) => acc + p, 0) / votiPD.length;
+          const soglia = SOGLIE_MODIFICATORE_DIFESA.find((s) => media >= s.minMedia);
+          bonusTotale += soglia?.bonus ?? 0;
+        }
+      }
+
+      // Bonus MVP: +1 alla formazione che ha schierato titolare l'MVP di
+      // giornata della lega.
+      if (lega.bonusMvp && mvpGiocatoreId && titolariIds.includes(mvpGiocatoreId)) {
+        bonusTotale += 1;
+      }
+
+      await prisma.formazione.update({ where: { id: f.id }, data: { punteggio: baseTotale + bonusTotale } });
     }
   }
 }

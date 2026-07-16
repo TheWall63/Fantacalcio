@@ -1,6 +1,8 @@
-import { useState } from "react";
-import type { CSSProperties } from "react";
+import { useRef, useState } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import type { Giocatore } from "../api/types";
+
+const TILT_MAX_DEG = 12;
 
 const RUOLO_LABEL: Record<string, string> = { P: "Portiere", D: "Difensore", C: "Centrocampista", A: "Attaccante" };
 
@@ -16,6 +18,29 @@ interface PlayerCardProps {
 
 export default function PlayerCard({ giocatore, slot, hasBonus, onClick, disabled, size = "md", index = 0 }: PlayerCardProps) {
   const [immagineNonCaricata, setImmagineNonCaricata] = useState(false);
+  const cardRef = useRef<HTMLButtonElement>(null);
+
+  // Tilt 3D che segue il cursore: aggiorna le custom property CSS
+  // direttamente sul nodo DOM (non via useState) per restare fluido a ogni
+  // movimento del mouse senza ri-renderizzare il componente.
+  function handleMouseMove(e: MouseEvent<HTMLButtonElement>) {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    el.style.setProperty("--rx", `${(px - 0.5) * TILT_MAX_DEG}deg`);
+    el.style.setProperty("--ry", `${-(py - 0.5) * TILT_MAX_DEG}deg`);
+    el.style.setProperty("--mx", `${px * 100}%`);
+    el.style.setProperty("--my", `${py * 100}%`);
+  }
+
+  function handleMouseLeave() {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
+  }
 
   const iniziali = giocatore.nome
     .split(" ")
@@ -40,9 +65,12 @@ export default function PlayerCard({ giocatore, slot, hasBonus, onClick, disable
 
   return (
     <button
+      ref={cardRef}
       type="button"
       className={classi}
       onClick={onClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       disabled={disabled}
       title={`${giocatore.nome} - ${RUOLO_LABEL[giocatore.ruolo]}`}
       style={{ "--i": Math.min(index, 14) } as CSSProperties}

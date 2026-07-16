@@ -5,6 +5,8 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import LegaPage from "./pages/LegaPage";
+import LegaSetupPage from "./pages/LegaSetupPage";
+import MercatoPage from "./pages/MercatoPage";
 import SquadraPage from "./pages/SquadraPage";
 import GiocatoriPage from "./pages/GiocatoriPage";
 import FormazionePage from "./pages/FormazionePage";
@@ -24,6 +26,8 @@ function App() {
       >
         <Route path="/" element={<DashboardPage />} />
         <Route path="/leghe/:id" element={<LegaPage />} />
+        <Route path="/leghe/:id/setup" element={<LegaSetupPage />} />
+        <Route path="/leghe/:id/mercato" element={<MercatoPage />} />
         <Route path="/squadre/:id" element={<SquadraPage />} />
         <Route path="/giocatori" element={<GiocatoriPage />} />
         <Route path="/formazione/:squadraId/:giornataId" element={<FormazionePage />} />

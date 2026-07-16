@@ -32,9 +32,25 @@ model Lega {
   adminId        String
   createdAt      DateTime @default(now())
 
-  admin      User      @relation("LegaAdmin", fields: [adminId], references: [id])
+  // Impostazioni scelte dall'admin nel wizard subito dopo la creazione della lega.
+  moduliConsentiti      String[] @default(["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"])
+  modificatoreDifesa    Boolean  @default(false)
+  bonusMvp              Boolean  @default(false)
+  cartebonusAttive      Boolean  @default(true)
+  // SCONTRI_DIRETTI: round robin, classifica a punti-partita (3/1/0).
+  // PUNTI: nessuno scontro diretto, vince chi somma piu' fantapunti in stagione.
+  modalitaClassifica    String   @default("SCONTRI_DIRETTI")
+  impostazioniCompletate Boolean @default(false)
+
+  // Mercato: finestra temporale (max 1 mese) in cui l'admin gestisce le rose
+  // di tutte le squadre e i partecipanti possono scambiarsi giocatori.
+  mercatoAperto      Boolean   @default(false)
+  mercatoChiusuraAt  DateTime?
+
+  admin      User             @relation("LegaAdmin", fields: [adminId], references: [id])
   squadre    Squadra[]
   calendario Scontro[]
+  scambi     RichiestaScambio[]
 }
 
 model Squadra {
@@ -52,6 +68,8 @@ model Squadra {
   scontriCasa  Scontro[]       @relation("ScontroCasa")
   scontriFuori Scontro[]       @relation("ScontroTrasferta")
   carteBonus   CartaBonus[]
+  scambiProposti  RichiestaScambio[] @relation("ScambioProponente")
+  scambiRicevuti  RichiestaScambio[] @relation("ScambioRicevente")
 
   @@unique([legaId, userId])
 }
@@ -70,6 +88,8 @@ model Giocatore {
   formazioni FormazioneGiocatore[]
   punteggi   PunteggioGiocatore[]
   carteBonus CartaBonus[]
+  scambiOfferti  RichiestaScambio[] @relation("ScambioOfferto")
+  scambiRichiesti RichiestaScambio[] @relation("ScambioRichiesto")
 
   @@index([squadraSerieA])
   @@index([ruolo])
@@ -139,6 +159,9 @@ model PunteggioGiocatore {
   giocatoreId  String
   punti        Float    @default(6) // base 6 + bonus/malus da eventi
   dettaglio    String? // JSON string col dettaglio del calcolo
+  // TITOLARE | SUBENTRATO | NON_CONVOCATO | INFORTUNATO — usato per lo schema
+  // colorato dello storico partite del giocatore (vedi lib/presenza.ts).
+  presenza     String   @default("NON_CONVOCATO")
   aggiornatoAt DateTime @updatedAt
 
   giornata  Giornata  @relation(fields: [giornataId], references: [id], onDelete: Cascade)
@@ -196,6 +219,29 @@ model CartaBonus {
   giornataUtilizzo Giornata? @relation("CartaUtilizzo", fields: [giornataUtilizzoId], references: [id])
 
   @@unique([squadraId, giornataAperturaId])
+}
+
+// Proposta di scambio tra due squadre della stessa lega, valida solo mentre
+// il "Mercato" della lega e' aperto. differenzaCrediti e' quanto la squadra
+// proponente da' (positivo) o riceve (negativo) in crediti oltre allo scambio
+// dei due giocatori, per bilanciare offerte impari.
+model RichiestaScambio {
+  id                  String   @id @default(cuid())
+  legaId              String
+  squadraProponenteId String
+  squadraRiceventeId  String
+  giocatoreOffertoId  String
+  giocatoreRichiestoId String
+  differenzaCrediti   Int      @default(0)
+  stato               String   @default("PENDING") // PENDING | ACCETTATA | RIFIUTATA | ANNULLATA
+  createdAt           DateTime @default(now())
+  aggiornatoAt        DateTime @updatedAt
+
+  lega              Lega      @relation(fields: [legaId], references: [id], onDelete: Cascade)
+  squadraProponente Squadra   @relation("ScambioProponente", fields: [squadraProponenteId], references: [id], onDelete: Cascade)
+  squadraRicevente  Squadra   @relation("ScambioRicevente", fields: [squadraRiceventeId], references: [id], onDelete: Cascade)
+  giocatoreOfferto  Giocatore @relation("ScambioOfferto", fields: [giocatoreOffertoId], references: [id])
+  giocatoreRichiesto Giocatore @relation("ScambioRichiesto", fields: [giocatoreRichiestoId], references: [id])
 }
 
 // Calendario a girone all'italiana: scontri diretti tra squadre della lega

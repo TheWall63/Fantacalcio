@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 import { MODULI_VALIDI, SCHEMA_MODULO } from "../types/domain";
+import { puoModificareFormazione } from "../lib/formazioneLock";
 
 const router = Router();
 router.use(requireAuth);
@@ -25,6 +26,20 @@ router.put("/", async (req, res) => {
   if (!squadra) return res.status(404).json({ error: "Squadra non trovata" });
   if (squadra.userId !== req.user!.userId) {
     return res.status(403).json({ error: "Non sei il proprietario di questa squadra" });
+  }
+
+  const giornataTarget = await prisma.giornata.findUnique({ where: { id: giornataId } });
+  if (!giornataTarget) return res.status(404).json({ error: "Giornata non trovata" });
+  const giornataPrecedente = await prisma.giornata.findUnique({
+    where: { numero_stagione: { numero: giornataTarget.numero - 1, stagione: giornataTarget.stagione } },
+  });
+  if (!puoModificareFormazione(giornataTarget, giornataPrecedente)) {
+    return res.status(403).json({
+      error:
+        giornataTarget.stato === "CONCLUSA"
+          ? "Questa giornata e' gia' conclusa: non puoi piu' modificarne la formazione"
+          : "Le formazioni per questa giornata non sono ancora modificabili: si sbloccano un paio d'ore dopo la fine della giornata precedente",
+    });
   }
 
   const idTutti = [...titolari, ...panchina];
@@ -79,6 +94,27 @@ router.get("/:squadraId/:giornataId", async (req, res) => {
   });
   if (!formazione) return res.status(404).json({ error: "Nessuna formazione schierata per questa giornata" });
   res.json(formazione);
+});
+
+// Ultima formazione schierata dalla squadra in una giornata precedente (stessa
+// stagione): usata per proporre in automatico lo stesso modulo/rosa titolare
+// quando non e' ancora stata schierata una formazione per la giornata target,
+// cosi' le scelte restano valide di giornata in giornata finche' non vengono
+// cambiate esplicitamente.
+router.get("/:squadraId/precedente/:giornataId", async (req, res) => {
+  const giornataTarget = await prisma.giornata.findUnique({ where: { id: req.params.giornataId } });
+  if (!giornataTarget) return res.status(404).json({ error: "Giornata non trovata" });
+
+  const precedente = await prisma.formazione.findFirst({
+    where: {
+      squadraId: req.params.squadraId,
+      giornata: { stagione: giornataTarget.stagione, numero: { lt: giornataTarget.numero } },
+    },
+    orderBy: { giornata: { numero: "desc" } },
+    include: { giocatori: { include: { giocatore: true } } },
+  });
+  if (!precedente) return res.status(404).json({ error: "Nessuna formazione precedente trovata" });
+  res.json(precedente);
 });
 
 export default router;
