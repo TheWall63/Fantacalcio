@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../api/client";
 import type { Lega } from "../api/types";
+
+const RITARDO_CHIUSURA_MS = 200;
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -11,35 +13,28 @@ export default function Layout() {
   const [legheAperto, setLegheAperto] = useState(false);
   const [leghe, setLeghe] = useState<Lega[]>([]);
   const [caricamentoLeghe, setCaricamentoLeghe] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const chiusuraTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+  function apriLeghe() {
+    if (chiusuraTimeout.current) {
+      clearTimeout(chiusuraTimeout.current);
+      chiusuraTimeout.current = null;
+    }
+    setLegheAperto(true);
+    setCaricamentoLeghe(true);
+    apiFetch<Lega[]>("/leghe")
+      .then(setLeghe)
+      .catch(() => setLeghe([]))
+      .finally(() => setCaricamentoLeghe(false));
+  }
+
+  function chiudiLegheConRitardo() {
+    chiusuraTimeout.current = setTimeout(() => setLegheAperto(false), RITARDO_CHIUSURA_MS);
+  }
+
+  function chiudiLegheSubito() {
+    if (chiusuraTimeout.current) clearTimeout(chiusuraTimeout.current);
     setLegheAperto(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    function handleClickFuori(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setLegheAperto(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickFuori);
-    return () => document.removeEventListener("mousedown", handleClickFuori);
-  }, []);
-
-  async function toggleLeghe() {
-    const apriOra = !legheAperto;
-    setLegheAperto(apriOra);
-    if (apriOra) {
-      setCaricamentoLeghe(true);
-      try {
-        setLeghe(await apiFetch<Lega[]>("/leghe"));
-      } catch {
-        setLeghe([]);
-      } finally {
-        setCaricamentoLeghe(false);
-      }
-    }
   }
 
   function handleLogout() {
@@ -56,13 +51,13 @@ export default function Layout() {
           ⚽ Fanta<span>calcio</span>
         </div>
         <nav>
-          <div className="nav-dropdown" ref={dropdownRef}>
-            <button type="button" className={`nav-dropdown-trigger ${legheAttiva ? "active" : ""}`} onClick={toggleLeghe}>
+          <div className="nav-dropdown" onMouseEnter={apriLeghe} onMouseLeave={chiudiLegheConRitardo}>
+            <button type="button" className={`nav-dropdown-trigger ${legheAttiva ? "active" : ""}`}>
               Le mie leghe <span className="nav-dropdown-caret">{legheAperto ? "▴" : "▾"}</span>
             </button>
             {legheAperto && (
               <div className="nav-dropdown-menu">
-                <Link to="/" className="nav-dropdown-item" onClick={() => setLegheAperto(false)}>
+                <Link to="/" className="nav-dropdown-item" onClick={chiudiLegheSubito}>
                   Tutte le leghe
                 </Link>
                 <div className="nav-dropdown-divider" />
@@ -72,7 +67,7 @@ export default function Layout() {
                   <span className="nav-dropdown-empty muted">Non fai parte di nessuna lega</span>
                 ) : (
                   leghe.map((l) => (
-                    <Link key={l.id} to={`/leghe/${l.id}`} className="nav-dropdown-item" onClick={() => setLegheAperto(false)}>
+                    <Link key={l.id} to={`/leghe/${l.id}`} className="nav-dropdown-item" onClick={chiudiLegheSubito}>
                       {l.nome}
                     </Link>
                   ))
