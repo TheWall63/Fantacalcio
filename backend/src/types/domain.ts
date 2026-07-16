@@ -30,6 +30,14 @@ export const MIN_SQUADRE_CALENDARIO_AUTO = 8;
 // Durata massima in giorni per cui il "Mercato" di una lega puo' restare aperto.
 export const MERCATO_DURATA_MAX_GIORNI = 30;
 
+// Modalita' di classifica scelta nel wizard di configurazione della lega.
+export const MODALITA_CLASSIFICA_VALIDI = ["SCONTRI_DIRETTI", "PUNTI"] as const;
+export type ModalitaClassifica = (typeof MODALITA_CLASSIFICA_VALIDI)[number];
+
+// Ore che devono passare dalla fine (dataFine) di una giornata prima che la
+// formazione della giornata successiva torni modificabile.
+export const ORE_ATTESA_MODIFICA_FORMAZIONE = 2;
+
 // Modificatore difesa (stile Leghe FC): bonus/malus alla formazione in base
 // alla media voto dei titolari portiere+difensori schierati in giornata.
 export const SOGLIE_MODIFICATORE_DIFESA: { minMedia: number; bonus: number }[] = [

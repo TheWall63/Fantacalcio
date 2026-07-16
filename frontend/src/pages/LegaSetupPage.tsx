@@ -19,6 +19,7 @@ export default function LegaSetupPage() {
   const [modificatoreDifesa, setModificatoreDifesa] = useState(false);
   const [bonusMvp, setBonusMvp] = useState(false);
   const [cartebonusAttive, setCartebonusAttive] = useState(true);
+  const [modalitaClassifica, setModalitaClassifica] = useState<"SCONTRI_DIRETTI" | "PUNTI">("SCONTRI_DIRETTI");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +31,7 @@ export default function LegaSetupPage() {
       setModificatoreDifesa(l.modificatoreDifesa);
       setBonusMvp(l.bonusMvp);
       setCartebonusAttive(l.cartebonusAttive);
+      setModalitaClassifica(l.modalitaClassifica);
     });
   }, [id]);
 
@@ -56,6 +58,7 @@ export default function LegaSetupPage() {
           modificatoreDifesa,
           bonusMvp,
           cartebonusAttive,
+          modalitaClassifica,
         },
       });
       showToast("Impostazioni della lega salvate!");
@@ -89,6 +92,37 @@ export default function LegaSetupPage() {
                 {m}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <h3>Modalità classifica</h3>
+          <p className="muted" style={{ marginTop: "-0.5rem" }}>
+            Scegline una: come si stabilisce chi vince la lega.
+          </p>
+          <div className="choice-grid">
+            <button
+              type="button"
+              className={`choice-card ${modalitaClassifica === "SCONTRI_DIRETTI" ? "selected" : ""}`}
+              onClick={() => setModalitaClassifica("SCONTRI_DIRETTI")}
+            >
+              <strong>Scontri diretti</strong>
+              <span className="muted">
+                Ogni giornata i partecipanti si sfidano uno contro uno (calendario a girone all'italiana). Vince la
+                lega chi fa più punti-partita (3 per vittoria, 1 per pareggio), come nel calcio vero.
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`choice-card ${modalitaClassifica === "PUNTI" ? "selected" : ""}`}
+              onClick={() => setModalitaClassifica("PUNTI")}
+            >
+              <strong>Modalità a punti</strong>
+              <span className="muted">
+                Nessuno scontro diretto: vince chi somma più fantapunti con i propri giocatori alla fine del
+                campionato (classifica cumulativa stile Leghe FC).
+              </span>
+            </button>
           </div>
         </div>
 

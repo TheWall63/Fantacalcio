@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 import { generateInviteCode } from "../lib/inviteCode";
 import { generaCalendarioLega } from "../services/calendario";
-import { MIN_SQUADRE_CALENDARIO_AUTO, MERCATO_DURATA_MAX_GIORNI, MODULI_VALIDI } from "../types/domain";
+import { MIN_SQUADRE_CALENDARIO_AUTO, MERCATO_DURATA_MAX_GIORNI, MODULI_VALIDI, MODALITA_CLASSIFICA_VALIDI } from "../types/domain";
 
 const router = Router();
 router.use(requireAuth);
@@ -138,14 +138,37 @@ router.get("/:id", async (req, res) => {
   res.json(lega);
 });
 
-// Classifica: aggrega i punteggi di tutti gli scontri diretti conclusi
+// Classifica: a seconda di lega.modalitaClassifica, aggrega i punti-partita
+// degli scontri diretti conclusi (SCONTRI_DIRETTI) oppure somma i fantapunti
+// totali fatti da ogni squadra in stagione, stile Leghe FC (PUNTI).
 router.get("/:id/classifica", async (req, res) => {
   const userId = req.user!.userId;
   const legaId = req.params.id;
 
+  const lega = await prisma.lega.findUnique({ where: { id: legaId } });
+  if (!lega) return res.status(404).json({ error: "Lega non trovata" });
+
   const squadre = await prisma.squadra.findMany({ where: { legaId } });
   if (!squadre.some((s) => s.userId === userId)) {
     return res.status(403).json({ error: "Non fai parte di questa lega" });
+  }
+
+  if (lega.modalitaClassifica === "PUNTI") {
+    const formazioni = await prisma.formazione.findMany({
+      where: { squadraId: { in: squadre.map((s) => s.id) }, punteggio: { not: null } },
+    });
+    const tabella = new Map<string, { squadraId: string; puntiTotali: number; giornateDisputate: number }>();
+    for (const s of squadre) tabella.set(s.id, { squadraId: s.id, puntiTotali: 0, giornateDisputate: 0 });
+    for (const f of formazioni) {
+      const riga = tabella.get(f.squadraId);
+      if (!riga) continue;
+      riga.puntiTotali += f.punteggio ?? 0;
+      riga.giornateDisputate += 1;
+    }
+    const classificaPunti = Array.from(tabella.values())
+      .map((riga) => ({ ...riga, squadra: squadre.find((s) => s.id === riga.squadraId) }))
+      .sort((a, b) => b.puntiTotali - a.puntiTotali);
+    return res.json(classificaPunti);
   }
 
   const scontri = await prisma.scontro.findMany({
@@ -202,6 +225,7 @@ const impostazioniSchema = z.object({
   modificatoreDifesa: z.boolean(),
   bonusMvp: z.boolean(),
   cartebonusAttive: z.boolean(),
+  modalitaClassifica: z.enum(MODALITA_CLASSIFICA_VALIDI),
 });
 
 // Wizard di configurazione della lega, compilato dall'admin subito dopo la

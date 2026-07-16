@@ -37,6 +37,9 @@ model Lega {
   modificatoreDifesa    Boolean  @default(false)
   bonusMvp              Boolean  @default(false)
   cartebonusAttive      Boolean  @default(true)
+  // SCONTRI_DIRETTI: round robin, classifica a punti-partita (3/1/0).
+  // PUNTI: nessuno scontro diretto, vince chi somma piu' fantapunti in stagione.
+  modalitaClassifica    String   @default("SCONTRI_DIRETTI")
   impostazioniCompletate Boolean @default(false)
 
   // Mercato: finestra temporale (max 1 mese) in cui l'admin gestisce le rose

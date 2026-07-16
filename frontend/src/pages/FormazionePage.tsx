@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
-import type { CartaBonus, Formazione, RosaGiocatore, Squadra } from "../api/types";
+import type { CartaBonus, Formazione, Giornata, RosaGiocatore, Squadra } from "../api/types";
 import PlayerCard from "../components/PlayerCard";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useToast } from "../context/ToastContext";
@@ -16,42 +16,58 @@ const SCHEMA: Record<string, { D: number; C: number; A: number }> = {
   "5-3-2": { D: 5, C: 3, A: 2 },
   "5-4-1": { D: 5, C: 4, A: 1 },
 };
+const ORE_ATTESA_MODIFICA_FORMAZIONE = 2;
 
 export default function FormazionePage() {
   useDocumentTitle("Schiera formazione");
   const { squadraId, giornataId } = useParams<{ squadraId: string; giornataId: string }>();
   const { showToast } = useToast();
   const [squadra, setSquadra] = useState<Squadra | null>(null);
+  const [giornate, setGiornate] = useState<Giornata[]>([]);
   const [rosa, setRosa] = useState<RosaGiocatore[]>([]);
   const [carte, setCarte] = useState<CartaBonus[]>([]);
-  const [modulo, setModulo] = useState("3-4-3");
+  const [modulo, setModulo] = useState("");
   const [titolari, setTitolari] = useState<Set<string>>(new Set());
   const [panchina, setPanchina] = useState<Set<string>>(new Set());
+  const [caricato, setCaricato] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const MODULI = squadra?.lega?.moduliConsentiti && squadra.lega.moduliConsentiti.length > 0 ? squadra.lega.moduliConsentiti : TUTTI_MODULI;
 
   useEffect(() => {
-    if (!squadraId) return;
-    apiFetch<Squadra>(`/squadre/${squadraId}`).then((s) => {
-      setSquadra(s);
-      if (s.lega?.moduliConsentiti?.length && !s.lega.moduliConsentiti.includes(modulo)) {
-        setModulo(s.lega.moduliConsentiti[0]);
-      }
-    });
+    if (!squadraId || !giornataId) return;
+    setCaricato(false);
+
+    apiFetch<Squadra>(`/squadre/${squadraId}`).then(setSquadra);
     apiFetch<RosaGiocatore[]>(`/squadre/${squadraId}/rosa`).then(setRosa);
     apiFetch<CartaBonus[]>(`/squadre/${squadraId}/carte`).then(setCarte).catch(() => {});
-    if (giornataId) {
-      apiFetch<Formazione>(`/formazioni/${squadraId}/${giornataId}`)
-        .then((f) => {
-          setModulo(f.modulo);
-          setTitolari(new Set(f.giocatori.filter((g) => g.slot === "TITOLARE").map((g) => g.giocatoreId)));
-          setPanchina(new Set(f.giocatori.filter((g) => g.slot === "PANCHINA").map((g) => g.giocatoreId)));
-        })
-        .catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    apiFetch<Giornata[]>(`/giornate?stagione=2025/26`).then(setGiornate).catch(() => {});
+
+    apiFetch<Formazione>(`/formazioni/${squadraId}/${giornataId}`)
+      .then((f) => {
+        setModulo(f.modulo);
+        setTitolari(new Set(f.giocatori.filter((g) => g.slot === "TITOLARE").map((g) => g.giocatoreId)));
+        setPanchina(new Set(f.giocatori.filter((g) => g.slot === "PANCHINA").map((g) => g.giocatoreId)));
+        setCaricato(true);
+      })
+      .catch(() => {
+        // Nessuna formazione ancora salvata per questa giornata: proponiamo in
+        // automatico l'ultima schierata (modulo e rosa titolare), cosi' le
+        // scelte restano valide di giornata in giornata finche' non le cambi.
+        apiFetch<Formazione>(`/formazioni/${squadraId}/precedente/${giornataId}`)
+          .then((f) => {
+            setModulo(f.modulo);
+            setTitolari(new Set(f.giocatori.filter((g) => g.slot === "TITOLARE").map((g) => g.giocatoreId)));
+            setPanchina(new Set(f.giocatori.filter((g) => g.slot === "PANCHINA").map((g) => g.giocatoreId)));
+          })
+          .catch(() => {
+            setModulo("");
+            setTitolari(new Set());
+            setPanchina(new Set());
+          })
+          .finally(() => setCaricato(true));
+      });
   }, [squadraId, giornataId]);
 
   const bonusAttivi = useMemo(() => {
@@ -59,7 +75,19 @@ export default function FormazionePage() {
     return new Set(carte.filter((c) => c.stato === "PENDING").map((c) => c.giocatoreId));
   }, [carte, squadra]);
 
-  const schema = SCHEMA[modulo];
+  const giornataTarget = giornate.find((g) => g.id === giornataId);
+  const giornataPrecedente = giornataTarget ? giornate.find((g) => g.numero === giornataTarget.numero - 1) : undefined;
+
+  const modificabile = useMemo(() => {
+    if (!giornataTarget) return true; // non ancora caricata: non blocchiamo l'interfaccia mostrando errori prematuri
+    if (giornataTarget.stato === "CONCLUSA") return false;
+    if (giornataTarget.numero <= 1) return true;
+    if (!giornataPrecedente?.dataFine) return false;
+    const sbloccoAt = new Date(giornataPrecedente.dataFine).getTime() + ORE_ATTESA_MODIFICA_FORMAZIONE * 60 * 60 * 1000;
+    return Date.now() >= sbloccoAt;
+  }, [giornataTarget, giornataPrecedente]);
+
+  const schema = SCHEMA[modulo] ?? { D: 0, C: 0, A: 0 };
   const conteggio = useMemo(() => {
     const c = { P: 0, D: 0, C: 0, A: 0 };
     for (const rid of titolari) {
@@ -70,6 +98,7 @@ export default function FormazionePage() {
   }, [titolari, rosa]);
 
   function ciclaStato(giocatoreId: string) {
+    if (!modificabile || !modulo) return;
     const inTitolari = titolari.has(giocatoreId);
     const inPanchina = panchina.has(giocatoreId);
 
@@ -112,17 +141,34 @@ export default function FormazionePage() {
     }
   }
 
-  const completo = titolari.size === 11 && conteggio.P === 1 && conteggio.D === schema.D && conteggio.C === schema.C && conteggio.A === schema.A;
+  const completo =
+    modulo !== "" &&
+    titolari.size === 11 &&
+    conteggio.P === 1 &&
+    conteggio.D === schema.D &&
+    conteggio.C === schema.C &&
+    conteggio.A === schema.A;
 
   return (
     <div>
-      <h2>Schiera formazione</h2>
+      <h2>Schiera formazione{giornataTarget ? ` (giornata ${giornataTarget.numero})` : ""}</h2>
       {error && <div className="error-box">{error}</div>}
+
+      {caricato && !modificabile && (
+        <div className="info-box">
+          {giornataTarget?.stato === "CONCLUSA"
+            ? "Questa giornata è già conclusa: la formazione non è più modificabile."
+            : "La formazione per questa giornata non è ancora modificabile: si sblocca un paio d'ore dopo che l'admin calcola i punteggi della giornata precedente."}
+        </div>
+      )}
 
       <div className="card flex-between">
         <div className="form-row" style={{ marginBottom: 0 }}>
           <label>Modulo</label>
-          <select value={modulo} onChange={(e) => setModulo(e.target.value)}>
+          <select value={modulo} disabled={!modificabile} onChange={(e) => setModulo(e.target.value)}>
+            <option value="" disabled>
+              -- Seleziona modulo --
+            </option>
             {MODULI.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -132,10 +178,16 @@ export default function FormazionePage() {
         </div>
         <div>
           <p className="muted">
-            Titolari: {titolari.size}/11 &middot; P {conteggio.P}/1, D {conteggio.D}/{schema.D}, C {conteggio.C}/{schema.C}, A {conteggio.A}/
-            {schema.A}
+            {modulo === "" ? (
+              "Scegli un modulo per iniziare a schierare i titolari."
+            ) : (
+              <>
+                Titolari: {titolari.size}/11 &middot; P {conteggio.P}/1, D {conteggio.D}/{schema.D}, C {conteggio.C}/{schema.C}, A{" "}
+                {conteggio.A}/{schema.A}
+              </>
+            )}
           </p>
-          <button disabled={!completo || busy} onClick={salva}>
+          <button disabled={!completo || !modificabile || busy} onClick={salva}>
             Salva formazione
           </button>
         </div>
@@ -151,8 +203,9 @@ export default function FormazionePage() {
       <div className="card">
         <h3>Rosa disponibile</h3>
         <p className="muted" style={{ marginTop: "-0.5rem" }}>
-          Clicca un campioncino per schierarlo titolare, clicca di nuovo per mandarlo in panchina, un terzo click lo
-          rimette libero.
+          {modulo === ""
+            ? "Seleziona prima un modulo qui sopra: potrai schierare i titolari solo dopo."
+            : "Clicca un campioncino per schierarlo titolare, clicca di nuovo per mandarlo in panchina, un terzo click lo rimette libero."}
         </p>
         <div className="player-card-grid">
           {rosa.map((r, i) => (
@@ -162,6 +215,7 @@ export default function FormazionePage() {
               giocatore={r.giocatore}
               slot={titolari.has(r.giocatoreId) ? "TITOLARE" : panchina.has(r.giocatoreId) ? "PANCHINA" : null}
               hasBonus={bonusAttivi.has(r.giocatoreId)}
+              disabled={!modificabile || modulo === ""}
               onClick={() => ciclaStato(r.giocatoreId)}
             />
           ))}

@@ -21,6 +21,7 @@ export interface Lega {
   modificatoreDifesa: boolean;
   bonusMvp: boolean;
   cartebonusAttive: boolean;
+  modalitaClassifica: "SCONTRI_DIRETTI" | "PUNTI";
   impostazioniCompletate: boolean;
   mercatoAperto: boolean;
   mercatoChiusuraAt: string | null;
@@ -60,6 +61,8 @@ export interface Giornata {
   numero: number;
   stagione: string;
   stato: "PROGRAMMATA" | "IN_CORSO" | "CONCLUSA";
+  dataInizio: string | null;
+  dataFine: string | null;
 }
 
 export interface EventoPartita {
@@ -81,7 +84,8 @@ export interface Partita {
   eventi: EventoPartita[];
 }
 
-export interface RigaClassifica {
+// Formato in caso di lega a scontri diretti (girone all'italiana, punti-partita)
+export interface RigaClassificaScontri {
   squadraId: string;
   punti: number;
   vinte: number;
@@ -92,6 +96,16 @@ export interface RigaClassifica {
   differenza: number;
   squadra: Squadra;
 }
+
+// Formato in caso di lega a "modalita' punti" (somma fantapunti in stagione, stile Leghe FC)
+export interface RigaClassificaPunti {
+  squadraId: string;
+  puntiTotali: number;
+  giornateDisputate: number;
+  squadra: Squadra;
+}
+
+export type RigaClassifica = RigaClassificaScontri | RigaClassificaPunti;
 
 export interface Formazione {
   id: string;

@@ -565,6 +565,7 @@ tbody tr:hover td {
 }
 .player-card:disabled {
   cursor: not-allowed;
+  filter: saturate(0.35) brightness(0.65);
 }
 .player-card.is-titolare,
 .player-card.is-panchina {
@@ -875,6 +876,44 @@ tbody tr:hover td {
 }
 .switch input:checked + .switch-slider::before {
   transform: translateX(21px);
+}
+
+/* Scelta singola tra opzioni con descrizione (wizard impostazioni lega) */
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  text-align: left;
+  background: rgba(148, 163, 209, 0.06);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.05rem;
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: none;
+  transition: border-color 0.2s, background 0.2s, transform 0.16s var(--ease-spring);
+}
+.choice-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: none;
+  box-shadow: none;
+  border-color: var(--border-strong);
+}
+.choice-card .muted {
+  font-weight: 500;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.choice-card.selected {
+  border-color: var(--primary);
+  background: rgba(34, 224, 143, 0.08);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .step-dots {

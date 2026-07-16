@@ -55,4 +55,25 @@ router.post("/:id/sync", async (req, res) => {
   }
 });
 
+// Azione esplicita dell'admin: calcola i punteggi definitivi della giornata
+// per tutti i partecipanti e la marca come CONCLUSA (dataFine = ora). Questo
+// e' il segnale che sblocca, un paio d'ore dopo, la modifica della formazione
+// della giornata successiva (vedi lib/formazioneLock.ts).
+router.post("/:id/concludi", async (req, res) => {
+  const amministraUnaLega = await prisma.lega.findFirst({ where: { adminId: req.user!.userId } });
+  if (!amministraUnaLega) {
+    return res.status(403).json({ error: "Solo l'admin di una lega puo' calcolare i punteggi di una giornata" });
+  }
+  try {
+    const risultato = await sincronizzaGiornata(req.params.id);
+    const giornata = await prisma.giornata.update({
+      where: { id: req.params.id },
+      data: { stato: "CONCLUSA", dataFine: new Date() },
+    });
+    res.json({ ...risultato, giornata });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
+
 export default router;
