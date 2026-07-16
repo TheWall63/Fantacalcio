@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
-import type { CartaBonus, Formazione, RosaGiocatore } from "../api/types";
+import type { CartaBonus, Formazione, RosaGiocatore, Squadra } from "../api/types";
 import PlayerCard from "../components/PlayerCard";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useToast } from "../context/ToastContext";
 
-const MODULI = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
+const TUTTI_MODULI = ["3-4-3", "3-5-2", "4-3-3", "4-4-2", "4-5-1", "5-3-2", "5-4-1"];
 const SCHEMA: Record<string, { D: number; C: number; A: number }> = {
   "3-4-3": { D: 3, C: 4, A: 3 },
   "3-5-2": { D: 3, C: 5, A: 2 },
@@ -21,6 +21,7 @@ export default function FormazionePage() {
   useDocumentTitle("Schiera formazione");
   const { squadraId, giornataId } = useParams<{ squadraId: string; giornataId: string }>();
   const { showToast } = useToast();
+  const [squadra, setSquadra] = useState<Squadra | null>(null);
   const [rosa, setRosa] = useState<RosaGiocatore[]>([]);
   const [carte, setCarte] = useState<CartaBonus[]>([]);
   const [modulo, setModulo] = useState("3-4-3");
@@ -29,8 +30,16 @@ export default function FormazionePage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const MODULI = squadra?.lega?.moduliConsentiti && squadra.lega.moduliConsentiti.length > 0 ? squadra.lega.moduliConsentiti : TUTTI_MODULI;
+
   useEffect(() => {
     if (!squadraId) return;
+    apiFetch<Squadra>(`/squadre/${squadraId}`).then((s) => {
+      setSquadra(s);
+      if (s.lega?.moduliConsentiti?.length && !s.lega.moduliConsentiti.includes(modulo)) {
+        setModulo(s.lega.moduliConsentiti[0]);
+      }
+    });
     apiFetch<RosaGiocatore[]>(`/squadre/${squadraId}/rosa`).then(setRosa);
     apiFetch<CartaBonus[]>(`/squadre/${squadraId}/carte`).then(setCarte).catch(() => {});
     if (giornataId) {
@@ -42,9 +51,13 @@ export default function FormazionePage() {
         })
         .catch(() => {});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [squadraId, giornataId]);
 
-  const bonusAttivi = useMemo(() => new Set(carte.filter((c) => c.stato === "PENDING").map((c) => c.giocatoreId)), [carte]);
+  const bonusAttivi = useMemo(() => {
+    if (squadra?.lega && !squadra.lega.cartebonusAttive) return new Set<string>();
+    return new Set(carte.filter((c) => c.stato === "PENDING").map((c) => c.giocatoreId));
+  }, [carte, squadra]);
 
   const schema = SCHEMA[modulo];
   const conteggio = useMemo(() => {
@@ -128,7 +141,7 @@ export default function FormazionePage() {
         </div>
       </div>
 
-      {bonusAttivi.size > 0 && (
+      {(squadra?.lega?.cartebonusAttive ?? true) && bonusAttivi.size > 0 && (
         <div className="info-box">
           Hai {bonusAttivi.size} carta/e bonus in attesa (badge dorato "+1"): se schieri quel giocatore da titolare
           questa giornata, riceve +1 al voto finale.

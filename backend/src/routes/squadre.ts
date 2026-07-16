@@ -17,6 +17,29 @@ async function assertProprietario(squadraId: string, userId: string): Promise<Ch
   return { ok: true, squadra };
 }
 
+// Solo l'admin della lega a cui appartiene la squadra puo' assegnare/togliere
+// giocatori: l'asta/mercato non e' piu' self-service per i partecipanti.
+async function assertAdminDellaLega(squadraId: string, userId: string): Promise<CheckSquadra> {
+  const squadra = await prisma.squadra.findUnique({ where: { id: squadraId } });
+  if (!squadra) return { ok: false, error: "Squadra non trovata", status: 404 };
+  const lega = await prisma.lega.findUnique({ where: { id: squadra.legaId } });
+  if (!lega || lega.adminId !== userId) {
+    return { ok: false, error: "Solo l'amministratore della lega puo' gestire i giocatori delle squadre", status: 403 };
+  }
+  return { ok: true, squadra };
+}
+
+// Dettaglio squadra, con le impostazioni della lega di appartenenza (usato dal
+// frontend per sapere se le carte bonus sono attive e quali moduli sono ammessi)
+router.get("/:id", async (req, res) => {
+  const userId = req.user!.userId;
+  const squadra = await prisma.squadra.findUnique({ where: { id: req.params.id }, include: { lega: true } });
+  if (!squadra) return res.status(404).json({ error: "Squadra non trovata" });
+  const membro = await prisma.squadra.findFirst({ where: { legaId: squadra.legaId, userId } });
+  if (!membro) return res.status(403).json({ error: "Non fai parte di questa lega" });
+  res.json(squadra);
+});
+
 // Rosa di una squadra
 router.get("/:id/rosa", async (req, res) => {
   const rosa = await prisma.rosaGiocatore.findMany({
@@ -32,10 +55,11 @@ const acquistoSchema = z.object({
   prezzo: z.number().int().min(0),
 });
 
-// Acquista/assegna un giocatore alla rosa (modulo asta)
+// Assegna un giocatore alla rosa di una squadra: solo l'admin della lega puo'
+// farlo (asta/mercato non e' self-service per i partecipanti).
 router.post("/:id/rosa", async (req, res) => {
   const userId = req.user!.userId;
-  const check = await assertProprietario(req.params.id, userId);
+  const check = await assertAdminDellaLega(req.params.id, userId);
   if ("error" in check) return res.status(check.status).json({ error: check.error });
   const squadra = check.squadra;
 
@@ -73,10 +97,10 @@ router.post("/:id/rosa", async (req, res) => {
   res.status(201).json(rosaEntry);
 });
 
-// Svincola un giocatore dalla rosa (rimborsa il budget)
+// Svincola un giocatore dalla rosa (rimborsa il budget): solo l'admin della lega
 router.delete("/:id/rosa/:rosaId", async (req, res) => {
   const userId = req.user!.userId;
-  const check = await assertProprietario(req.params.id, userId);
+  const check = await assertAdminDellaLega(req.params.id, userId);
   if ("error" in check) return res.status(check.status).json({ error: check.error });
 
   const entry = await prisma.rosaGiocatore.findUnique({ where: { id: req.params.rosaId } });
@@ -128,6 +152,11 @@ router.post("/:id/pacchetto", async (req, res) => {
   const parsed = pacchettoSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
   const { giornataId } = parsed.data;
+
+  const lega = await prisma.lega.findUnique({ where: { id: squadra.legaId } });
+  if (!lega?.cartebonusAttive) {
+    return res.status(403).json({ error: "La modalita' carte bonus non e' attiva in questa lega" });
+  }
 
   const giornata = await prisma.giornata.findUnique({ where: { id: giornataId } });
   if (!giornata) return res.status(404).json({ error: "Giornata non trovata" });

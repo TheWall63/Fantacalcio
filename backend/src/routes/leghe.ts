@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 import { generateInviteCode } from "../lib/inviteCode";
 import { generaCalendarioLega } from "../services/calendario";
-import { MIN_SQUADRE_CALENDARIO_AUTO } from "../types/domain";
+import { MIN_SQUADRE_CALENDARIO_AUTO, MERCATO_DURATA_MAX_GIORNI, MODULI_VALIDI } from "../types/domain";
 
 const router = Router();
 router.use(requireAuth);
@@ -117,7 +117,7 @@ router.get("/", async (req, res) => {
 // Dettaglio lega: squadre iscritte e classifica
 router.get("/:id", async (req, res) => {
   const userId = req.user!.userId;
-  const lega = await prisma.lega.findUnique({
+  let lega = await prisma.lega.findUnique({
     where: { id: req.params.id },
     include: { squadre: { include: { utente: true } } },
   });
@@ -125,6 +125,16 @@ router.get("/:id", async (req, res) => {
   if (!lega.squadre.some((s) => s.userId === userId)) {
     return res.status(403).json({ error: "Non fai parte di questa lega" });
   }
+
+  // Chiude automaticamente il mercato se la data limite e' passata
+  if (lega.mercatoAperto && lega.mercatoChiusuraAt && lega.mercatoChiusuraAt < new Date()) {
+    lega = await prisma.lega.update({
+      where: { id: lega.id },
+      data: { mercatoAperto: false },
+      include: { squadre: { include: { utente: true } } },
+    });
+  }
+
   res.json(lega);
 });
 
@@ -185,6 +195,60 @@ router.get("/:id/classifica", async (req, res) => {
     .sort((a, b) => b.punti - a.punti || b.differenza - a.differenza);
 
   res.json(classifica);
+});
+
+const impostazioniSchema = z.object({
+  moduliConsentiti: z.array(z.enum(MODULI_VALIDI)).min(1),
+  modificatoreDifesa: z.boolean(),
+  bonusMvp: z.boolean(),
+  cartebonusAttive: z.boolean(),
+});
+
+// Wizard di configurazione della lega, compilato dall'admin subito dopo la
+// creazione (moduli ammessi, modificatore difesa, bonus mvp, carte bonus).
+router.patch("/:id/impostazioni", async (req, res) => {
+  const userId = req.user!.userId;
+  const lega = await prisma.lega.findUnique({ where: { id: req.params.id } });
+  if (!lega) return res.status(404).json({ error: "Lega non trovata" });
+  if (lega.adminId !== userId) {
+    return res.status(403).json({ error: "Solo l'admin della lega puo' modificarne le impostazioni" });
+  }
+
+  const parsed = impostazioniSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+
+  const aggiornata = await prisma.lega.update({
+    where: { id: lega.id },
+    data: { ...parsed.data, impostazioniCompletate: true },
+  });
+  res.json(aggiornata);
+});
+
+const mercatoSchema = z.union([
+  z.object({ apri: z.literal(true), durataGiorni: z.number().int().min(1).max(MERCATO_DURATA_MAX_GIORNI) }),
+  z.object({ apri: z.literal(false) }),
+]);
+
+// Apre/chiude il "Mercato" della lega. L'apertura ha una durata massima di un
+// mese; da aperto l'admin puo' gestire le rose di tutte le squadre e i
+// partecipanti possono proporsi scambi (vedi routes/scambi.ts).
+router.patch("/:id/mercato", async (req, res) => {
+  const userId = req.user!.userId;
+  const lega = await prisma.lega.findUnique({ where: { id: req.params.id } });
+  if (!lega) return res.status(404).json({ error: "Lega non trovata" });
+  if (lega.adminId !== userId) {
+    return res.status(403).json({ error: "Solo l'admin della lega puo' gestire il mercato" });
+  }
+
+  const parsed = mercatoSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+
+  const data = parsed.data.apri
+    ? { mercatoAperto: true, mercatoChiusuraAt: new Date(Date.now() + parsed.data.durataGiorni * 24 * 60 * 60 * 1000) }
+    : { mercatoAperto: false, mercatoChiusuraAt: null };
+
+  const aggiornata = await prisma.lega.update({ where: { id: lega.id }, data });
+  res.json(aggiornata);
 });
 
 export default router;

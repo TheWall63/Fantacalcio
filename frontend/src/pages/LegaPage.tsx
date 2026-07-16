@@ -98,9 +98,23 @@ export default function LegaPage() {
     <div>
       <div className="flex-between">
         <h2>{lega.nome}</h2>
-        <span className="muted">Codice invito: <strong>{lega.codiceInvito}</strong></span>
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <span className="muted">Codice invito: <strong>{lega.codiceInvito}</strong></span>
+          <Link to={`/leghe/${lega.id}/mercato`}>
+            <button className="secondary">Mercato{lega.mercatoAperto ? " (aperto)" : ""}</button>
+          </Link>
+        </div>
       </div>
       {error && <div className="error-box">{error}</div>}
+
+      {sonoAdmin && !lega.impostazioniCompletate && (
+        <div className="info-box flex-between">
+          <span>Non hai ancora completato la configurazione di questa lega (moduli, modificatore difesa, bonus mvp, carte bonus).</span>
+          <Link to={`/leghe/${lega.id}/setup`}>
+            <button style={{ whiteSpace: "nowrap" }}>Configura ora</button>
+          </Link>
+        </div>
+      )}
 
       <div className="grid cols-2">
         <div className="card">

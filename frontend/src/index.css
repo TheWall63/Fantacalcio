@@ -791,6 +791,106 @@ tbody tr:hover td {
   pointer-events: none;
 }
 
+/* Selettore moduli a "chip" (wizard impostazioni lega) */
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.chip {
+  background: rgba(148, 163, 209, 0.08);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 0.5rem 1.05rem;
+  font-weight: 700;
+  transition: transform 0.16s var(--ease-spring), background 0.2s, color 0.2s, border-color 0.2s;
+  box-shadow: none;
+}
+.chip:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: none;
+  box-shadow: none;
+  border-color: var(--border-strong);
+}
+.chip.selected {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #04170d;
+  border-color: transparent;
+}
+
+/* Toggle on/off (impostazioni lega) */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.switch-row:last-child {
+  border-bottom: none;
+}
+.switch-row-text strong {
+  display: block;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 27px;
+  flex-shrink: 0;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: rgba(148, 163, 209, 0.22);
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+.switch-slider::before {
+  content: "";
+  position: absolute;
+  height: 21px;
+  width: 21px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s var(--ease-spring);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.switch input:checked + .switch-slider {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+.switch input:checked + .switch-slider::before {
+  transform: translateX(21px);
+}
+
+.step-dots {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+.step-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition: background 0.2s, transform 0.2s;
+}
+.step-dots span.active {
+  background: var(--primary);
+  transform: scale(1.3);
+}
+
 /* Skeleton loading */
 .skeleton {
   position: relative;

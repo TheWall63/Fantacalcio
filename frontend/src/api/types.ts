@@ -17,6 +17,13 @@ export interface Lega {
   createdAt: string;
   miaSquadraId?: string;
   squadre?: Squadra[];
+  moduliConsentiti: string[];
+  modificatoreDifesa: boolean;
+  bonusMvp: boolean;
+  cartebonusAttive: boolean;
+  impostazioniCompletate: boolean;
+  mercatoAperto: boolean;
+  mercatoChiusuraAt: string | null;
 }
 
 export interface Squadra {
@@ -27,6 +34,7 @@ export interface Squadra {
   budgetResiduo: number;
   createdAt: string;
   utente?: User;
+  lega?: Lega;
 }
 
 export interface Giocatore {
@@ -105,4 +113,21 @@ export interface CartaBonus {
   giocatore: Giocatore;
   giornataApertura?: Giornata;
   giornataUtilizzo?: Giornata | null;
+}
+
+export interface RichiestaScambio {
+  id: string;
+  legaId: string;
+  squadraProponenteId: string;
+  squadraRiceventeId: string;
+  giocatoreOffertoId: string;
+  giocatoreRichiestoId: string;
+  differenzaCrediti: number;
+  stato: "PENDING" | "ACCETTATA" | "RIFIUTATA" | "ANNULLATA";
+  createdAt: string;
+  aggiornatoAt: string;
+  squadraProponente: Squadra;
+  squadraRicevente: Squadra;
+  giocatoreOfferto: Giocatore;
+  giocatoreRichiesto: Giocatore;
 }

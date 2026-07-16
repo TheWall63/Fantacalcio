@@ -9,6 +9,7 @@ import giocatoriRoutes from "./routes/giocatori";
 import giornateRoutes from "./routes/giornate";
 import formazioniRoutes from "./routes/formazioni";
 import liveRoutes from "./routes/live";
+import scambiRoutes from "./routes/scambi";
 import { avviaCronLive } from "./services/cronJob";
 import { isLiveDataConfigured } from "./services/footballData";
 import { prisma } from "./lib/prisma";
@@ -30,6 +31,7 @@ app.use("/api/giocatori", giocatoriRoutes);
 app.use("/api/giornate", giornateRoutes);
 app.use("/api/formazioni", formazioniRoutes);
 app.use("/api/live", liveRoutes);
+app.use("/api/scambi", scambiRoutes);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

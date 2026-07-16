@@ -27,6 +27,19 @@ export const SCHEMA_MODULO: Record<Modulo, { D: number; C: number; A: number }> 
 // viene generato automaticamente (vedi routes/leghe.ts, join).
 export const MIN_SQUADRE_CALENDARIO_AUTO = 8;
 
+// Durata massima in giorni per cui il "Mercato" di una lega puo' restare aperto.
+export const MERCATO_DURATA_MAX_GIORNI = 30;
+
+// Modificatore difesa (stile Leghe FC): bonus/malus alla formazione in base
+// alla media voto dei titolari portiere+difensori schierati in giornata.
+export const SOGLIE_MODIFICATORE_DIFESA: { minMedia: number; bonus: number }[] = [
+  { minMedia: 7, bonus: 3 },
+  { minMedia: 6.5, bonus: 2 },
+  { minMedia: 6, bonus: 1 },
+  { minMedia: 5.5, bonus: 0 },
+  { minMedia: -Infinity, bonus: -1 },
+];
+
 export const STATO_PARTITA = ["SCHEDULED", "LIVE", "FINISHED"] as const;
 export const STATO_GIORNATA = ["PROGRAMMATA", "IN_CORSO", "CONCLUSA"] as const;
 export const SLOT_FORMAZIONE = ["TITOLARE", "PANCHINA"] as const;

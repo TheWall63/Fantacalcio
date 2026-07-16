@@ -19,27 +19,47 @@ Monorepo npm workspaces: un solo `npm install` alla radice installa entrambi i p
 
 - **Autenticazione**: email/password con JWT, multi-utente.
 - **Leghe**: crea una lega con codice invito, gli amici entrano con quel codice; ogni
-  utente ha una squadra per lega.
-- **Asta/mercato**: assegna giocatori alla tua rosa entro il budget della lega; un
-  giocatore non può appartenere a due squadre della stessa lega.
+  utente ha una squadra per lega. Subito dopo la creazione, l'admin passa da un
+  **wizard di configurazione** (`/leghe/:id/setup`) dove sceglie i moduli ammessi, se
+  attivare il modificatore difesa, il bonus MVP di giornata e la modalità carte bonus.
+- **Rose gestite dall'admin**: solo l'amministratore della lega può assegnare o togliere
+  giocatori dalle rose dei partecipanti (non è più un'asta self-service). Lo fa dalla
+  sezione **Mercato**; un giocatore non può appartenere a due squadre della stessa lega.
+- **Mercato**: sezione dedicata (`/leghe/:id/mercato`) che l'admin può aprire per un
+  periodo configurabile fino a **30 giorni**. A mercato aperto l'admin gestisce le rose
+  di tutte le squadre, e i partecipanti possono proporsi scambi di giocatori a vicenda
+  (con eventuale conguaglio in crediti); l'accettazione scambia la proprietà dei due
+  giocatori in una transazione atomica (vedi `backend/src/routes/scambi.ts`). L'admin
+  può assegnare/togliere giocatori anche a mercato chiuso; solo gli scambi tra
+  partecipanti richiedono il mercato aperto.
 - **Calendario**: generato automaticamente a girone all'italiana (round robin) non appena
   la lega raggiunge **8 squadre iscritte** (scatta una volta sola per non azzerare punteggi
   già calcolati se altri si iscrivono dopo). L'admin può comunque generarlo prima se sono
   in meno, o rigenerarlo in qualsiasi momento dalla sezione "Amministrazione lega".
-- **Formazioni**: scegli modulo e titolari/panchina rispettando gli schemi classici
-  (3-4-3, 4-3-3, ecc.), con validazione dei ruoli. I giocatori si schierano come card
-  "Campioncino" in stile Ultimate Team (colore per ruolo, quotazione come rating, un
-  click per titolare/panchina).
-- **Pacchetto settimanale**: una volta a giornata ogni squadra può aprire un pacchetto
-  che estrae a caso un giocatore della propria rosa. Se quel giocatore viene schierato
-  titolare in una giornata riceve **+1** al voto finale; se non gioca, la carta bonus
-  resta valida e si attiva automaticamente alla prima giornata utile in cui viene
-  schierato (vedi `backend/src/routes/squadre.ts`, endpoint `/pacchetto` e `/carte`, e
-  la logica di attivazione idempotente in `services/scoring.ts`).
+- **Formazioni**: scegli modulo (solo tra quelli ammessi dalla lega) e titolari/panchina
+  rispettando gli schemi classici (3-4-3, 4-3-3, ecc.), con validazione dei ruoli. I
+  giocatori si schierano come card "Campioncino" in stile Ultimate Team (colore per
+  ruolo, quotazione come rating, un click per titolare/panchina).
+- **Pacchetto settimanale (modalità carte bonus)**: se la lega ha questa modalità attiva
+  (scelta nel wizard, modificabile in seguito), una volta a giornata ogni squadra può
+  aprire un pacchetto che estrae a caso un giocatore della propria rosa. Se quel
+  giocatore viene schierato titolare in una giornata riceve **+1** al voto finale; se non
+  gioca, la carta bonus resta valida e si attiva automaticamente alla prima giornata
+  utile in cui viene schierato (vedi `backend/src/routes/squadre.ts`, endpoint
+  `/pacchetto` e `/carte`, e la logica di attivazione idempotente in
+  `services/scoring.ts`). Se la lega usa la **modalità classica** invece, questa sezione
+  non compare e nessun bonus pacchetto viene applicato.
+- **Modificatore difesa** (opzionale, stile Leghe FC): bonus/malus alla formazione in
+  base alla media voto di portiere e difensori titolari (+3/+2/+1/0/-1 a seconda della
+  soglia, vedi `SOGLIE_MODIFICATORE_DIFESA` in `backend/src/types/domain.ts`).
+- **Bonus MVP di giornata** (opzionale): la formazione che schiera titolare il giocatore
+  con il voto più alto della giornata, nella propria lega, riceve **+1** punto extra.
 - **Punteggi e classifica**: la sincronizzazione di una giornata calcola i fantavoti dei
-  giocatori dagli eventi reali della partita, somma i punti della formazione schierata
-  (bonus pacchetto incluso) e aggiorna il risultato dello scontro diretto in classifica
-  (3/1/0 punti come nel calcio vero).
+  giocatori dagli eventi reali della partita (dato globale, condiviso tra tutte le
+  leghe), poi somma i punti della formazione schierata applicando le impostazioni
+  **della singola lega** (carte bonus, modificatore difesa, bonus mvp — nessuna delle tre
+  influenza mai il punteggio calcolato in un'altra lega) e aggiorna il risultato dello
+  scontro diretto in classifica (3/1/0 punti come nel calcio vero).
 
 ## Dati dei giocatori: cosa è incluso e cosa no
 
@@ -159,7 +179,7 @@ invito con gli amici.
 ```
 backend/src/
   server.ts              entrypoint Express
-  routes/                auth, leghe, squadre, giocatori, giornate, formazioni, live
+  routes/                auth, leghe, squadre, giocatori, giornate, formazioni, live, scambi
   services/
     footballData.ts      client API football-data.org
     demoData.ts           generatore di partite finte (modalità demo)
@@ -177,7 +197,8 @@ frontend/src/
   api/          client fetch + tipi condivisi con il backend
   context/      AuthContext (sessione), ToastContext (notifiche animate)
   hooks/        useDocumentTitle, useCountUp
-  pages/        Login, Register, Dashboard, Lega, Squadra, Giocatori (live), Formazione
+  pages/        Login, Register, Dashboard, Lega, LegaSetup (wizard), Mercato, Squadra,
+                Giocatori (live), Formazione
   components/   Layout, ProtectedRoute, PlayerCard (campioncino con tilt 3D),
                 PackOpening (apertura pacchetto animata), Confetti, Skeleton
 ```
@@ -189,8 +210,9 @@ frontend/src/
   sbagliare. Un pannello admin per correggere manualmente gli abbinamenti sarebbe il
   prossimo passo naturale.
 - Il calcolo del punteggio formazione non implementa ancora le sostituzioni automatiche
-  dalla panchina in caso di titolare che non ha giocato, né il "modificatore di difesa"
-  ufficiale del regolamento Fantacalcio.it.
+  dalla panchina in caso di titolare che non ha giocato. Il "modificatore difesa" incluso
+  è una versione semplificata ispirata a Leghe FC, non il regolamento ufficiale
+  Fantacalcio.it.
 - Per pubblicare il sito online gratis (Render + Neon + Vercel) segui **[DEPLOY.md](./DEPLOY.md)**.
   Il piano gratuito di Render mette in pausa il backend dopo 15 minuti di inattività: la
   prima richiesta dopo una pausa lunga può impiegare 30-50 secondi.
