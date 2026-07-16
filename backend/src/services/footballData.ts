@@ -47,7 +47,7 @@ export interface PartitaEsterna {
 }
 
 export interface EventoEsterno {
-  tipo: "GOL" | "AUTOGOL" | "ASSIST" | "AMMONIZIONE" | "ESPULSIONE" | "RIGORE_SEGNATO";
+  tipo: "GOL" | "AUTOGOL" | "ASSIST" | "AMMONIZIONE" | "ESPULSIONE" | "RIGORE_SEGNATO" | "RIGORE_SBAGLIATO";
   minuto: number | null;
   giocatoreNome: string | null;
   squadra: string;

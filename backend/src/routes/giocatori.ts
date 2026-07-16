@@ -45,6 +45,47 @@ router.get("/:id", requireAuth, async (req, res) => {
   res.json(giocatore);
 });
 
+// Statistiche stagionali del giocatore (gol, assist, rigori, presenze) e
+// cronologia partita per partita con lo stato di presenza, usata per il
+// pannello di dettaglio che si apre cliccando sul nome del giocatore.
+router.get("/:id/statistiche", requireAuth, async (req, res) => {
+  const giocatore = await prisma.giocatore.findUnique({ where: { id: req.params.id } });
+  if (!giocatore) return res.status(404).json({ error: "Giocatore non trovato" });
+
+  const [punteggi, eventi, partiteTotali] = await Promise.all([
+    prisma.punteggioGiocatore.findMany({
+      where: { giocatoreId: giocatore.id },
+      include: { giornata: true },
+      orderBy: { giornata: { numero: "asc" } },
+    }),
+    prisma.eventoPartita.findMany({ where: { giocatoreId: giocatore.id }, select: { tipo: true } }),
+    // Giornate per cui esiste gia' almeno un punteggio calcolato: le
+    // "partite totali giocate in generale" finora in questa stagione.
+    prisma.giornata.count({ where: { punteggi: { some: {} } } }),
+  ]);
+
+  const conta = (tipo: string) => eventi.filter((e) => e.tipo === tipo).length;
+  const partiteGiocate = punteggi.filter((p) => p.presenza === "TITOLARE" || p.presenza === "SUBENTRATO").length;
+
+  res.json({
+    giocatore,
+    statistiche: {
+      partiteTotali,
+      partiteGiocate,
+      gol: conta("GOL"),
+      assist: conta("ASSIST"),
+      rigoriSegnati: conta("RIGORE_SEGNATO"),
+      rigoriSbagliati: conta("RIGORE_SBAGLIATO"),
+    },
+    cronologia: punteggi.map((p) => ({
+      giornataId: p.giornataId,
+      numero: p.giornata.numero,
+      presenza: p.presenza,
+      punti: p.punti,
+    })),
+  });
+});
+
 // Import CSV del "listone" ufficiale (nome,squadra,ruolo,quotazione,immagine)
 // La colonna "immagine" e' opzionale: URL (https://...) o path statico servito
 // dal frontend (es. /players/lautaro-martinez.jpg messo in frontend/public/players/).

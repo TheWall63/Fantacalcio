@@ -79,6 +79,18 @@ Monorepo npm workspaces: un solo `npm install` alla radice installa entrambi i p
   calcolato in un'altra lega), aggiorna la classifica secondo la modalità scelta, e marca
   la giornata come **conclusa** (`POST /api/giornate/:id/concludi`): questo è anche il
   segnale che, un paio d'ore dopo, sblocca la formazione della giornata successiva.
+- **Dettaglio giocatore**: cliccando sul nome di un giocatore (pagina "Giocatori & Live"
+  e nella tua rosa) si apre un pannello con le statistiche stagionali — gol, assist,
+  rigori segnati/sbagliati, partite totali giocate in generale nella stagione (quante
+  giornate sono state calcolate finora) affiancate alle partite giocate dal giocatore —
+  e uno storico partita per partita con un pallino colorato per ciascuna giornata:
+  🟢 verde = titolare, 🟠 arancione = subentrato, 🔴 rosso = non ha giocato, 🩵 ciano =
+  infortunio (`GET /api/giocatori/:id/statistiche`). Lo stato di presenza è stimato in
+  modo deterministico (vedi `backend/src/lib/presenza.ts`): se il giocatore ha eventi
+  registrati (gol/assist/cartellino/rigore) sappiamo per certo che ha giocato; altrimenti,
+  poiché il piano gratuito di football-data.org non fornisce le distinte ufficiali, in
+  modalità reale resta onestamente "non ha giocato", mentre in **modalità DEMO** viene
+  simulato tra tutti e quattro gli stati per rendere la funzionalità dimostrabile.
 
 ## Dati dei giocatori: cosa è incluso e cosa no
 
@@ -219,7 +231,8 @@ frontend/src/
   pages/        Login, Register, Dashboard, Lega, LegaSetup (wizard), Mercato, Squadra,
                 Giocatori (live), Formazione
   components/   Layout, ProtectedRoute, PlayerCard (campioncino con tilt 3D),
-                PackOpening (apertura pacchetto animata), Confetti, Skeleton
+                PackOpening (apertura pacchetto animata), Confetti, Skeleton,
+                GiocatoreStatsModal (dettaglio + storico presenze)
 ```
 
 ## Limiti noti e possibili estensioni future

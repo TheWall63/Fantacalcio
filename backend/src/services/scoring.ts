@@ -4,6 +4,7 @@ import { generaGiornataDemo } from "./demoData";
 import { trovaSquadraDaNomeEsterno } from "../config/squadreSerieA";
 import { stessoGiocatore } from "../lib/matching";
 import { BONUS_MALUS, TipoEvento, SOGLIE_MODIFICATORE_DIFESA } from "../types/domain";
+import { determinaPresenza } from "../lib/presenza";
 
 export interface SyncResult {
   demo: boolean;
@@ -20,7 +21,7 @@ export async function sincronizzaGiornata(giornataId: string): Promise<SyncResul
 
   const demo = !isLiveDataConfigured();
   const partiteEsterne: PartitaEsterna[] = demo
-    ? generaGiornataDemo(giornata.numero)
+    ? await generaGiornataDemo(giornata.numero)
     : await fetchGiornataSerieA(giornata.numero);
 
   for (const pe of partiteEsterne) {
@@ -60,7 +61,7 @@ export async function sincronizzaGiornata(giornataId: string): Promise<SyncResul
     }
   }
 
-  const giocatoriValutati = await calcolaPunteggiGiornata(giornataId);
+  const giocatoriValutati = await calcolaPunteggiGiornata(giornataId, demo);
   await calcolaPunteggiFormazioni(giornataId);
   await calcolaScontriDiretti(giornataId);
 
@@ -75,7 +76,7 @@ async function risolviGiocatore(nomeEsterno: string): Promise<string | null> {
   return match?.id ?? null;
 }
 
-async function calcolaPunteggiGiornata(giornataId: string): Promise<number> {
+async function calcolaPunteggiGiornata(giornataId: string, demo: boolean): Promise<number> {
   const partite = await prisma.partita.findMany({
     where: { giornataId },
     include: { eventi: true },
@@ -96,9 +97,14 @@ async function calcolaPunteggiGiornata(giornataId: string): Promise<number> {
   });
   for (const g of giocatoriCoinvolti) puntiPerGiocatore.set(g.id, 6);
 
+  // Chi ha almeno un evento (gol/assist/cartellino/rigore) ha sicuramente
+  // giocato: lo usiamo per stimare la presenza (vedi lib/presenza.ts).
+  const giocatoriConEventi = new Set<string>();
+
   for (const p of partite) {
     for (const ev of p.eventi) {
       if (!ev.giocatoreId) continue;
+      giocatoriConEventi.add(ev.giocatoreId);
       const bonus = BONUS_MALUS[ev.tipo as TipoEvento] ?? 0;
       puntiPerGiocatore.set(ev.giocatoreId, (puntiPerGiocatore.get(ev.giocatoreId) ?? 6) + bonus);
     }
@@ -112,10 +118,11 @@ async function calcolaPunteggiGiornata(giornataId: string): Promise<number> {
 
   const voci = Array.from(puntiPerGiocatore.entries());
   for (const [giocatoreId, punti] of voci) {
+    const presenza = determinaPresenza(giocatoreId, giornataId, giocatoriConEventi.has(giocatoreId), demo);
     await prisma.punteggioGiocatore.upsert({
       where: { giornataId_giocatoreId: { giornataId, giocatoreId } },
-      create: { giornataId, giocatoreId, punti },
-      update: { punti },
+      create: { giornataId, giocatoreId, punti, presenza },
+      update: { punti, presenza },
     });
   }
   return voci.length;

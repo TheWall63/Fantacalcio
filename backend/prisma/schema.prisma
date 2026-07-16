@@ -159,6 +159,9 @@ model PunteggioGiocatore {
   giocatoreId  String
   punti        Float    @default(6) // base 6 + bonus/malus da eventi
   dettaglio    String? // JSON string col dettaglio del calcolo
+  // TITOLARE | SUBENTRATO | NON_CONVOCATO | INFORTUNATO — usato per lo schema
+  // colorato dello storico partite del giocatore (vedi lib/presenza.ts).
+  presenza     String   @default("NON_CONVOCATO")
   aggiornatoAt DateTime @updatedAt
 
   giornata  Giornata  @relation(fields: [giornataId], references: [id], onDelete: Cascade)

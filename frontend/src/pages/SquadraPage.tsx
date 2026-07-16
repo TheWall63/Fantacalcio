@@ -5,6 +5,7 @@ import type { CartaBonus, Giocatore, Giornata, RosaGiocatore, Squadra } from "..
 import PlayerCard from "../components/PlayerCard";
 import PackOpening, { type FaseApertura } from "../components/PackOpening";
 import Confetti from "../components/Confetti";
+import GiocatoreStatsModal from "../components/GiocatoreStatsModal";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useCountUp } from "../hooks/useCountUp";
 import { useToast } from "../context/ToastContext";
@@ -23,6 +24,7 @@ export default function SquadraPage() {
   const [fasePacchetto, setFasePacchetto] = useState<FaseApertura>("idle");
   const [cartaRivelata, setCartaRivelata] = useState<Giocatore | null>(null);
   const [festaId, setFestaId] = useState(0);
+  const [giocatoreSelezionato, setGiocatoreSelezionato] = useState<string | null>(null);
 
   const cartebonusAttive = squadra?.lega?.cartebonusAttive ?? true;
 
@@ -186,7 +188,11 @@ export default function SquadraPage() {
           <tbody>
             {rosa.map((r) => (
               <tr key={r.id}>
-                <td>{r.giocatore.nome}</td>
+                <td>
+                  <button type="button" className="link-button" onClick={() => setGiocatoreSelezionato(r.giocatoreId)}>
+                    {r.giocatore.nome}
+                  </button>
+                </td>
                 <td>
                   <span className={`badge ruolo-${r.giocatore.ruolo}`}>{r.giocatore.ruolo}</span>
                 </td>
@@ -204,6 +210,10 @@ export default function SquadraPage() {
           </tbody>
         </table>
       </div>
+
+      {giocatoreSelezionato && (
+        <GiocatoreStatsModal giocatoreId={giocatoreSelezionato} onClose={() => setGiocatoreSelezionato(null)} />
+      )}
     </div>
   );
 }

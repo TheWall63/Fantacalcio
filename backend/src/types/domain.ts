@@ -52,6 +52,11 @@ export const STATO_PARTITA = ["SCHEDULED", "LIVE", "FINISHED"] as const;
 export const STATO_GIORNATA = ["PROGRAMMATA", "IN_CORSO", "CONCLUSA"] as const;
 export const SLOT_FORMAZIONE = ["TITOLARE", "PANCHINA"] as const;
 
+// Stato di un giocatore in una singola giornata di Serie A (non fantacalcio):
+// usato per lo storico partite nel dettaglio giocatore.
+export const STATO_PRESENZA = ["TITOLARE", "SUBENTRATO", "NON_CONVOCATO", "INFORTUNATO"] as const;
+export type StatoPresenza = (typeof STATO_PRESENZA)[number];
+
 export const TIPO_EVENTO = [
   "GOL",
   "AUTOGOL",

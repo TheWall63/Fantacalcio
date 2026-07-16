@@ -129,6 +129,21 @@ export interface CartaBonus {
   giornataUtilizzo?: Giornata | null;
 }
 
+export type StatoPresenza = "TITOLARE" | "SUBENTRATO" | "NON_CONVOCATO" | "INFORTUNATO";
+
+export interface StatisticheGiocatore {
+  giocatore: Giocatore;
+  statistiche: {
+    partiteTotali: number;
+    partiteGiocate: number;
+    gol: number;
+    assist: number;
+    rigoriSegnati: number;
+    rigoriSbagliati: number;
+  };
+  cronologia: { giornataId: string; numero: number; presenza: StatoPresenza; punti: number }[];
+}
+
 export interface RichiestaScambio {
   id: string;
   legaId: string;
