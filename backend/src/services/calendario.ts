@@ -7,7 +7,7 @@ import { prisma } from "../lib/prisma";
 export async function generaCalendarioLega(legaId: string) {
   const lega = await prisma.lega.findUnique({ where: { id: legaId }, include: { squadre: true } });
   if (!lega) throw new Error("Lega non trovata");
-  if (lega.squadre.length < 2) throw new Error("Servono almeno 2 squadre per generare il calendario");
+  if (lega.squadre.length < 3) throw new Error("Servono almeno 3 squadre per generare il calendario");
 
   await prisma.scontro.deleteMany({ where: { legaId } });
 

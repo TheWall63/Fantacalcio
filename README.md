@@ -34,8 +34,8 @@ Monorepo npm workspaces: un solo `npm install` alla radice installa entrambi i p
   partecipanti richiedono il mercato aperto.
 - **Calendario**: generato automaticamente a girone all'italiana (round robin) non appena
   la lega raggiunge **8 squadre iscritte** (scatta una volta sola per non azzerare punteggi
-  già calcolati se altri si iscrivono dopo). L'admin può comunque generarlo prima se sono
-  in meno, o rigenerarlo in qualsiasi momento dalla sezione "Amministrazione lega".
+  già calcolati se altri si iscrivono dopo). L'admin può comunque generarlo prima (bastano
+  **almeno 3 squadre**), o rigenerarlo in qualsiasi momento dalla sezione "Amministrazione lega".
 - **Formazioni**: scegli modulo (solo tra quelli ammessi dalla lega) e titolari/panchina
   rispettando gli schemi classici (3-4-3, 4-3-3, ecc.), con validazione dei ruoli. I
   giocatori si schierano come card "Campioncino" in stile Ultimate Team (colore per

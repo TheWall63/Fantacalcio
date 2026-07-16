@@ -97,13 +97,15 @@ export default function LegaPage() {
   return (
     <div>
       <div className="flex-between">
-        <h2>{lega.nome}</h2>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <span className="muted">Codice invito: <strong>{lega.codiceInvito}</strong></span>
-          <Link to={`/leghe/${lega.id}/mercato`}>
-            <button className="secondary">Mercato{lega.mercatoAperto ? " (aperto)" : ""}</button>
-          </Link>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "0.65rem", flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0 }}>{lega.nome}</h2>
+          <span className="muted" style={{ fontSize: "0.85rem" }}>
+            Codice invito: <strong>{lega.codiceInvito}</strong>
+          </span>
         </div>
+        <Link to={`/leghe/${lega.id}/mercato`}>
+          <button className="secondary btn-sm">Mercato{lega.mercatoAperto ? " (aperto)" : ""}</button>
+        </Link>
       </div>
       {error && <div className="error-box">{error}</div>}
 
@@ -186,7 +188,7 @@ export default function LegaPage() {
           <h3>Amministrazione lega</h3>
           <p className="muted">
             Solo l'admin della lega vede questi controlli. Il calendario si genera da solo appena la lega raggiunge 8
-            squadre iscritte; da qui puoi comunque generarlo prima se siete di meno, o rigenerarlo.
+            squadre iscritte; da qui puoi comunque generarlo prima (servono almeno 3 squadre), o rigenerarlo.
           </p>
           <p>
             Calendario: <strong>{giornate.length > 0 ? `${giornate.length} giornate generate` : "non ancora generato"}</strong>

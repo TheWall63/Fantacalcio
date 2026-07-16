@@ -146,6 +146,10 @@ button.danger {
   color: white;
   box-shadow: 0 4px 14px rgba(245, 85, 107, 0.3);
 }
+button.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+}
 
 input,
 select {
