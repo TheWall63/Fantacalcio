@@ -233,6 +233,102 @@ select:focus {
   transform: scaleX(1);
 }
 
+/* Dropdown "Le mie leghe" nella topbar */
+.nav-dropdown {
+  position: relative;
+}
+.nav-dropdown-trigger {
+  position: relative;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0 0 0.2rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  transition: color 0.15s;
+}
+.nav-dropdown-trigger:hover,
+.nav-dropdown-trigger:active {
+  background: none;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+.nav-dropdown-trigger:hover {
+  color: var(--text);
+}
+.nav-dropdown-trigger::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--accent-2));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s var(--ease-spring);
+}
+.nav-dropdown-trigger:hover::after,
+.nav-dropdown-trigger.active::after {
+  transform: scaleX(1);
+}
+.nav-dropdown-trigger.active {
+  color: var(--text);
+}
+.nav-dropdown-caret {
+  font-size: 0.65rem;
+}
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.9rem);
+  left: 0;
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-strong);
+  padding: 0.5rem;
+  z-index: 30;
+  animation: slideDown 0.2s var(--ease-spring) both;
+}
+.nav-dropdown-item {
+  display: block;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s;
+}
+.nav-dropdown-item:hover {
+  background: rgba(148, 163, 209, 0.1);
+  text-decoration: none;
+}
+.nav-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.35rem 0;
+}
+.nav-dropdown-empty {
+  display: block;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+}
+
 .brand {
   font-weight: 900;
   font-size: 1.3rem;
